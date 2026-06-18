@@ -520,7 +520,7 @@ func Run() {
 		utils.Error("加载链式代理规则到缓存失败: %v", err)
 	}
 
-		// 注册Host变更回调：当Host模块数据变更时自动同步到mihomo resolver
+	// 注册Host变更回调：当Host模块数据变更时自动同步到mihomo resolver
 	// 这样所有使用代理的功能（测速、订阅导入、Telegram等）都遵循Host设置
 	models.RegisterHostChangeCallback(func() {
 		if err := mihomo.SyncHostsFromDB(); err != nil {

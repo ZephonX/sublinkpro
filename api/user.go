@@ -44,13 +44,13 @@ func UserMe(c *gin.Context) {
 		utils.FailWithMsg(c, err.Error())
 		return
 	}
-		utils.OkDetailed(c, "获取用户信息成功", gin.H{
-			"avatar": "",
-			"nickname": user.Nickname,
+	utils.OkDetailed(c, "获取用户信息成功", gin.H{
+		"avatar":   "",
+		"nickname": user.Nickname,
 		"userId":   user.ID,
 		"username": user.Username,
 		"roles":    []string{"ADMIN"},
-		"mfa": gin.H{
+		"mfa":      gin.H{
 			"enabled":                user.TOTPEnabled,
 			"pendingEnrollment":      buildMFAStatus(user).PendingEnrollment,
 			"recoveryCodesRemaining": user.CountRecoveryCodes(),
