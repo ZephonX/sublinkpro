@@ -371,7 +371,7 @@ jobs:
             # 带 tag 的推送：使用 tag 版本号 + latest
             TAG=${GITHUB_REF#refs/tags/}
             IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
-            docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64,linux/arm/v7,linux/386 \
+            docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64,linux/arm/v7 \
               -f Dockerfile.ci \
               -t "${IMAGE}:${TAG}" \
               -t "${IMAGE}:latest" \
@@ -386,7 +386,7 @@ jobs:
               DOCKER_TAG=${BRANCH//\//-}
             fi
             IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
-            docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64,linux/arm/v7,linux/386 \
+            docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64,linux/arm/v7 \
               -f Dockerfile.ci \
               -t "${IMAGE}:${DOCKER_TAG}" \
               --push .
