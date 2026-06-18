@@ -73,6 +73,10 @@ export default function NodeTable({
   const { isDark } = useResolvedColorScheme();
   const tokens = getNodeThemeTokens(theme, isDark);
   const isSelected = (node) => selectedNodes.some((n) => n.ID === node.ID);
+  const actionColumnSurface = tokens.palette.background.paper;
+  const actionColumnHoverSurface = tokens.isDark ? tokens.palette.dark.dark : tokens.palette.grey[50];
+  const actionColumnSelectedSurface = tokens.isDark ? tokens.palette.dark.main : tokens.palette.primary.light;
+  const actionColumnSelectedHoverSurface = tokens.isDark ? tokens.palette.dark.main : tokens.palette.primary.light;
 
   // 列宽调整状态
   const [resizing, setResizing] = useState(null);
@@ -207,6 +211,12 @@ export default function NodeTable({
     '&:hover': {
       bgcolor: selected ? tokens.selectedHoverSurface : tokens.hoverSurface
     },
+    '& .MuiTableCell-root.actions-cell': {
+      backgroundColor: selected ? actionColumnSelectedSurface : actionColumnSurface
+    },
+    '&:hover .MuiTableCell-root.actions-cell': {
+      backgroundColor: selected ? actionColumnSelectedHoverSurface : actionColumnHoverSurface
+    },
     '& td, & .MuiTableCell-root': {
       borderBottomColor: tokens.softBorder
     }
@@ -268,7 +278,8 @@ export default function NodeTable({
               overflow: 'visible',
               position: 'sticky',
               right: 0,
-              bgcolor: tokens.cardSurface,
+              bgcolor: actionColumnSurface,
+              backgroundImage: 'none',
               zIndex: 1,
               boxShadow: `-2px 0 4px ${alpha(tokens.isDark ? theme.palette.common.black : theme.palette.common.black, 0.08)}`
             },
@@ -295,6 +306,7 @@ export default function NodeTable({
               <TableCell
                 sx={{
                   width: columnWidths.remark,
+                  maxWidth: columnWidths.remark,
                   minWidth: 60,
                   position: 'relative',
                   bgcolor: resizing?.columnKey === 'remark' ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
@@ -470,13 +482,19 @@ export default function NodeTable({
                   <TableCell padding="checkbox">
                     <Checkbox checked={isSelected(node)} onChange={() => onSelect(node)} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell
+                    sx={{
+                      width: columnWidths.remark,
+                      maxWidth: columnWidths.remark
+                    }}
+                  >
                     <Tooltip title={effectiveName}>
-                      <Stack spacing={0.25} sx={{ width: '100%' }}>
+                      <Stack spacing={0.25} sx={{ width: '100%', minWidth: 0 }}>
                         <Typography
                           variant="body2"
                           fontWeight="medium"
                           sx={{
+                            display: 'block',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap'
@@ -485,7 +503,16 @@ export default function NodeTable({
                           {effectiveName}
                         </Typography>
                         {showSecondaryName && (
-                          <Typography variant="caption" sx={{ color: tokens.secondaryText, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: 'block',
+                              color: tokens.secondaryText,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
                             {node.NameMode === 'remark'
                               ? t('nodes.table.originalName', { name: secondaryName })
                               : t('nodes.table.remarkName', { name: secondaryName })}

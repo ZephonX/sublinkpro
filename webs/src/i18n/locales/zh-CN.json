@@ -95,7 +95,8 @@
       "subscription": "订阅管理",
       "script": "脚本管理",
       "accessKey": "API 密钥",
-      "system": "系统设置"
+      "system": "系统设置",
+      "changelog": "更新日志"
     },
     "items": {
       "dashboard": "仪表盘",

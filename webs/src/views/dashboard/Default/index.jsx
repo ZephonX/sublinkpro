@@ -814,25 +814,6 @@ const IPQualityBreakdown = ({ stats, loading }) => {
   );
 };
 
-// ==============================|| 问候语计算 ||============================== //
-
-const getGreeting = (t) => {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 9) {
-    return { text: t('dashboard.default.greeting.morning'), emoji: '🌅', subText: t('dashboard.default.greeting.morningSub') };
-  } else if (hour >= 9 && hour < 12) {
-    return { text: t('dashboard.default.greeting.lateMorning'), emoji: '☀️', subText: t('dashboard.default.greeting.lateMorningSub') };
-  } else if (hour >= 12 && hour < 14) {
-    return { text: t('dashboard.default.greeting.noon'), emoji: '🌤️', subText: t('dashboard.default.greeting.noonSub') };
-  } else if (hour >= 14 && hour < 18) {
-    return { text: t('dashboard.default.greeting.afternoon'), emoji: '🌇', subText: t('dashboard.default.greeting.afternoonSub') };
-  } else if (hour >= 18 && hour < 23) {
-    return { text: t('dashboard.default.greeting.evening'), emoji: '🌙', subText: t('dashboard.default.greeting.eveningSub') };
-  } else {
-    return { text: t('dashboard.default.greeting.night'), emoji: '✨', subText: t('dashboard.default.greeting.nightSub') };
-  }
-};
-
 // ==============================|| 高级统计卡片组件 ||============================== //
 
 const PremiumStatCard = ({
@@ -1469,8 +1450,6 @@ export default function DashboardDefault() {
   const [airports, setAirports] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-
-  const greeting = useMemo(() => getGreeting(t), [t]);
 
   // 显示提示消息
   const showSnackbar = (success, severity = 'success') => {
