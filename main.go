@@ -740,10 +740,10 @@ func Run() {
 	shutdownCtx, stopSignal := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopSignal()
 
-		go func() {
-			<-shutdownCtx.Done()
-			utils.Info("收到退出信号，正在停止后台服务")
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	go func() {
+		<-shutdownCtx.Done()
+		utils.Info("收到退出信号，正在停止后台服务")
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := server.Shutdown(ctx); err != nil {
 			utils.Warn("HTTP 服务关闭失败: %v", err)

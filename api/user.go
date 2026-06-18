@@ -45,12 +45,12 @@ func UserMe(c *gin.Context) {
 		return
 	}
 	utils.OkDetailed(c, "获取用户信息成功", gin.H{
-		"avatar":   "",
-		"nickname": user.Nickname,
-		"userId":   user.ID,
-		"username": user.Username,
-		"roles":    []string{"ADMIN"},
-		"mfa":      gin.H{
+		"avatar":	"",
+		"nickname":	user.Nickname,
+		"userId":	user.ID,
+		"username":	user.Username,
+		"roles":	[]string{"ADMIN"},
+		"mfa":		gin.H{
 			"enabled":                user.TOTPEnabled,
 			"pendingEnrollment":      buildMFAStatus(user).PendingEnrollment,
 			"recoveryCodesRemaining": user.CountRecoveryCodes(),

@@ -740,11 +740,11 @@ func RunSpeedTestWithConfig(nodes []models.Node, trigger models.TaskTrigger, pro
 							resultData["unlockFilterReason"] = "chain_speed_filter"
 						}
 					} else {
-					unlockSummary := unlock.CheckUnlock(result.node.Link, speedTestTimeout, result.node.LinkCountry, unlockProviders)
-					result.unlock = unlockSummary
-					result.node.UnlockSummary = models.BuildUnlockSummaryJSON(unlockSummary)
-					result.node.UnlockCheckAt = unlockSummary.UpdatedAt
-					resultData["unlock"] = unlockSummary
+						unlockSummary := unlock.CheckUnlock(result.node.Link, speedTestTimeout, result.node.LinkCountry, unlockProviders)
+						result.unlock = unlockSummary
+						result.node.UnlockSummary = models.BuildUnlockSummaryJSON(unlockSummary)
+						result.node.UnlockCheckAt = unlockSummary.UpdatedAt
+						resultData["unlock"] = unlockSummary
 					}
 				}
 
