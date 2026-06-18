@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useMemo } from 'react';
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 // material-ui
@@ -14,7 +14,6 @@ import Button from '@mui/material/Button';
 
 // assets
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import NewReleasesIcon from '@mui/icons-material/NewReleases';
 
 // project imports
 import useConfig from 'hooks/useConfig';
@@ -25,11 +24,10 @@ import { withAlpha } from 'utils/colorUtils';
 // GitHub 仓库配置
 const GITHUB_REPO = 'ZeroDeng01/sublinkPro';
 const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
-const GITHUB_API_RELEASES = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 
 // ==============================|| SIDEBAR - VERSION CARD ||============================== //
 
-const getMenuCardTokens = (theme, isDark, hasUpdate, statusColor, versionStatus) => {
+const getMenuCardTokens = (theme, isDark, statusColor) => {
   const { palette, dialogSurface, mutedPanelSurface, nestedPanelSurface, panelBorder } = getSurfaceTokens(theme, isDark);
   const { primaryText, secondaryText, tertiaryText } = getReadableTextTokens(theme, isDark);
 
@@ -42,7 +40,7 @@ const getMenuCardTokens = (theme, isDark, hasUpdate, statusColor, versionStatus)
     cardSurface: isDark
       ? `linear-gradient(180deg, ${withAlpha(palette.background.paper, 0.96)} 0%, ${dialogSurface} 100%)`
       : `linear-gradient(180deg, ${withAlpha(palette.background.paper, 0.98)} 0%, ${withAlpha(palette.background.default, 0.9)} 100%)`,
-    cardBorder: hasUpdate ? withAlpha(statusColor, isDark ? 0.28 : 0.2) : panelBorder,
+    cardBorder: panelBorder,
     panelBorder,
     statusBorder: withAlpha(statusColor, isDark ? 0.28 : 0.2),
     currentVersionSurface: isDark
@@ -51,22 +49,13 @@ const getMenuCardTokens = (theme, isDark, hasUpdate, statusColor, versionStatus)
     currentVersionBorder: isDark ? withAlpha(palette.divider, 0.76) : withAlpha(palette.divider, 0.76),
     statusPanelSurface: isDark
       ? `linear-gradient(180deg, ${withAlpha(statusColor, 0.14)} 0%, ${withAlpha(mutedPanelSurface, 0.96)} 100%)`
-      : withAlpha(statusColor, versionStatus.key === 'update' ? 0.08 : 0.06),
+      : withAlpha(statusColor, 0.06),
     iconButtonBackground: isDark ? withAlpha(nestedPanelSurface, 0.42) : withAlpha(palette.background.paper, 0.98),
-    iconButtonHoverBackground: isDark
-      ? withAlpha(nestedPanelSurface, 0.58)
-      : withAlpha(hasUpdate ? statusColor : theme.palette.primary.main, 0.08),
+    iconButtonHoverBackground: isDark ? withAlpha(nestedPanelSurface, 0.58) : withAlpha(theme.palette.primary.main, 0.08),
     titleColor: isDark ? withAlpha(primaryText, 0.96) : primaryText,
     mutedTextColor: isDark ? withAlpha(primaryText, 0.72) : secondaryText,
     statusTextColor: isDark ? withAlpha(primaryText, 0.88) : primaryText,
-    statusHintColor:
-      versionStatus.key === 'update'
-        ? isDark
-          ? withAlpha(theme.palette.warning.light, 0.9)
-          : secondaryText
-        : isDark
-          ? withAlpha(primaryText, 0.72)
-          : secondaryText
+    statusHintColor: isDark ? withAlpha(primaryText, 0.72) : secondaryText
   };
 };
 
@@ -76,92 +65,17 @@ function MenuCard() {
   const { isDark } = useResolvedColorScheme();
   const palette = theme.vars?.palette || theme.palette;
   const { version } = useConfig();
-  const [latestVersion, setLatestVersion] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchLatestVersion = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(GITHUB_API_RELEASES);
-        if (res.ok) {
-          const data = await res.json();
-          setLatestVersion(data.tag_name || '');
-        }
-      } catch (error) {
-        console.error('获取版本信息失败:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLatestVersion();
-  }, []);
 
   const currentVersion = version || 'dev';
-  const normalizedCurrentVersion = currentVersion.replace(/^v/, '');
-  const normalizedLatestVersion = latestVersion.replace(/^v/, '');
-  const hasLatestVersion = Boolean(normalizedLatestVersion);
-  const hasUpdate = hasLatestVersion && Boolean(normalizedCurrentVersion) && normalizedLatestVersion !== normalizedCurrentVersion;
   const releasesPageHref = `${GITHUB_URL}/releases`;
-  const releaseHref = latestVersion ? `${GITHUB_URL}/releases/tag/${latestVersion}` : releasesPageHref;
-
-  const versionStatus = useMemo(() => {
-    if (loading) {
-      return {
-        key: 'loading',
-        label: t('version.status.loading'),
-        tone: 'info',
-        hint: t('version.hint.loading'),
-        actionLabel: t('version.actions.releases'),
-        actionHref: releasesPageHref,
-        actionVariant: 'text'
-      };
-    }
-
-    if (hasUpdate) {
-      return {
-        key: 'update',
-        label: t('version.status.update'),
-        tone: 'warning',
-        hint: latestVersion ? t('version.hint.latest', { version: latestVersion }) : t('version.hint.updateAvailable'),
-        actionLabel: t('version.actions.update'),
-        actionHref: releaseHref,
-        actionVariant: 'contained'
-      };
-    }
-
-    if (hasLatestVersion) {
-      return {
-        key: 'current',
-        label: t('version.status.current'),
-        tone: 'success',
-        hint: latestVersion ? t('version.hint.synced', { version: latestVersion }) : t('version.hint.noUpdate'),
-        actionLabel: t('version.actions.releases'),
-        actionHref: releasesPageHref,
-        actionVariant: 'text'
-      };
-    }
-
-    return {
-      key: 'unknown',
-      label: t('version.status.unknown'),
-      tone: 'default',
-      hint: t('version.hint.manual'),
-      actionLabel: t('version.actions.releases'),
-      actionHref: releasesPageHref,
-      actionVariant: 'text'
-    };
-  }, [hasLatestVersion, hasUpdate, latestVersion, loading, releaseHref, releasesPageHref, t]);
-
-  const statusToneMap = {
-    warning: isDark ? theme.palette.warning.main : theme.palette.warning.dark,
-    success: theme.palette.success.main,
-    info: theme.palette.info.main,
-    default: isDark ? withAlpha(palette.text.primary, 0.72) : palette.text.secondary
+  const versionStatus = {
+    key: 'current',
+    label: t('version.status.current'),
+    hint: t('version.hint.manual'),
+    actionLabel: t('version.actions.releases'),
+    actionHref: releasesPageHref
   };
-
-  const statusColor = statusToneMap[versionStatus.tone] || statusToneMap.default;
+  const statusColor = isDark ? withAlpha(palette.text.primary, 0.72) : palette.text.secondary;
   const {
     cardSurface,
     cardBorder,
@@ -177,14 +91,9 @@ function MenuCard() {
     titleColor,
     iconButtonBackground,
     iconButtonHoverBackground
-  } = getMenuCardTokens(theme, isDark, hasUpdate, statusColor, versionStatus);
-  const titleAccentColor = hasUpdate ? statusColor : theme.palette.primary.main;
-  const iconButtonColor = hasUpdate ? statusColor : mutedTextColor;
-  const ctaBackground = isDark ? alpha(theme.palette.warning.main, 0.18) : theme.palette.warning.dark;
-  const ctaHoverBackground = isDark ? alpha(theme.palette.warning.main, 0.26) : theme.palette.warning.main;
-  const ctaColor = isDark ? withAlpha(palette.warning.light, 0.98) : theme.palette.common.white;
-  const ctaBorderColor = isDark ? alpha(theme.palette.warning.main, 0.28) : alpha(theme.palette.warning.dark, 0.22);
-  const statusActionIsContained = versionStatus.actionVariant === 'contained';
+  } = getMenuCardTokens(theme, isDark, statusColor);
+  const titleAccentColor = theme.palette.primary.main;
+  const iconButtonColor = mutedTextColor;
 
   return (
     <Card
@@ -202,11 +111,7 @@ function MenuCard() {
           position: 'absolute',
           width: 120,
           height: 120,
-          bgcolor: hasUpdate
-            ? alpha(theme.palette.warning.main, isDark ? 0.12 : 0.08)
-            : isDark
-              ? alpha(theme.palette.primary.main, 0.04)
-              : alpha(theme.palette.primary.main, 0.06),
+          bgcolor: isDark ? alpha(theme.palette.primary.main, 0.04) : alpha(theme.palette.primary.main, 0.06),
           borderRadius: '50%',
           top: -72,
           right: -68
@@ -224,17 +129,13 @@ function MenuCard() {
               borderRadius: 2,
               color: titleAccentColor,
               border: '1px solid',
-              borderColor: hasUpdate ? withAlpha(statusColor, isDark ? 0.3 : 0.2) : alpha(theme.palette.primary.main, isDark ? 0.28 : 0.16),
-              bgcolor: hasUpdate
-                ? withAlpha(statusColor, isDark ? 0.16 : 0.1)
-                : isDark
-                  ? alpha(theme.palette.background.paper, 0.16)
-                  : alpha(theme.palette.primary.main, 0.06),
+              borderColor: alpha(theme.palette.primary.main, isDark ? 0.28 : 0.16),
+              bgcolor: isDark ? alpha(theme.palette.background.paper, 0.16) : alpha(theme.palette.primary.main, 0.06),
               boxShadow: 'none',
               flexShrink: 0
             }}
           >
-            {hasUpdate ? <NewReleasesIcon fontSize="small" /> : <InfoOutlinedIcon fontSize="small" />}
+            <InfoOutlinedIcon fontSize="small" />
           </Avatar>
 
           <Box sx={{ minWidth: 0, flex: 1 }}>
@@ -364,59 +265,28 @@ function MenuCard() {
               </Box>
             </Box>
 
-            {statusActionIsContained ? (
-              <Button
-                size="small"
-                variant="contained"
-                color="warning"
-                href={versionStatus.actionHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{
-                  minWidth: 'auto',
-                  px: 1.05,
-                  py: 0.35,
-                  fontSize: '0.72rem',
-                  lineHeight: 1,
-                  fontWeight: 700,
-                  color: ctaColor,
-                  bgcolor: ctaBackground,
-                  border: '1px solid',
-                  borderColor: ctaBorderColor,
-                  boxShadow: 'none',
-                  flexShrink: 0,
-                  '&:hover': {
-                    bgcolor: ctaHoverBackground,
-                    boxShadow: 'none'
-                  }
-                }}
-              >
-                {versionStatus.actionLabel}
-              </Button>
-            ) : (
-              <Button
-                size="small"
-                variant="text"
-                href={versionStatus.actionHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{
-                  minWidth: 'auto',
-                  px: 0.6,
-                  py: 0.25,
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
-                  color: mutedTextColor,
-                  '&:hover': {
-                    bgcolor: withAlpha(theme.palette.primary.main, isDark ? 0.12 : 0.06),
-                    color: statusTextColor
-                  },
-                  flexShrink: 0
-                }}
-              >
-                {versionStatus.actionLabel}
-              </Button>
-            )}
+            <Button
+              size="small"
+              variant="text"
+              href={versionStatus.actionHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                minWidth: 'auto',
+                px: 0.6,
+                py: 0.25,
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                color: mutedTextColor,
+                '&:hover': {
+                  bgcolor: withAlpha(theme.palette.primary.main, isDark ? 0.12 : 0.06),
+                  color: statusTextColor
+                },
+                flexShrink: 0
+              }}
+            >
+              {versionStatus.actionLabel}
+            </Button>
           </Box>
         </Box>
       </Box>
