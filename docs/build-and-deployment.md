@@ -230,8 +230,8 @@ Production builds generate:
 ### Docker Images
 
 Released images:
-- `zerodeng/sublink-pro:latest`
-- `zerodeng/sublink-pro:v{version}`
+- `ghcr.io/zephonx/sublinkpro:latest`
+- `ghcr.io/zephonx/sublinkpro:v{version}`
 
 ---
 

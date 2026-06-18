@@ -19,8 +19,8 @@
 ```yaml
 services:
   sublinkpro:
-    # image: zerodeng/sublink-pro:dev # 开发版（功能尝鲜使用）
-    image: zerodeng/sublink-pro # 稳定版
+    # image: ghcr.io/zephonx/sublinkpro:dev # 开发版（功能尝鲜使用）
+    image: ghcr.io/zephonx/sublinkpro # 稳定版
     container_name: sublinkpro
     ports:
       - "8000:8000"
@@ -36,7 +36,7 @@ services:
 ```yaml
 services:
   sublinkpro:
-    image: zerodeng/sublink-pro
+    image: ghcr.io/zephonx/sublinkpro
     container_name: sublinkpro
     ports:
       - "8000:8000"
@@ -57,10 +57,6 @@ services:
 
 建议把 Sub-Store 服务仅保留在 Compose 内部网络中，不要直接暴露端口。两个容器启动后，请登录后台进入 **用户中心 -> Sub-Store**，启用 sidecar、填写类似 `http://substore:3000` 的 Base URL、选择允许的输出目标并测试连接。Sub-Store 集成只通过该页面管理，不使用环境变量。
 
-如需通过 Cloudflare Tunnel 暴露服务，可在启动后进入 **用户中心 -> Cloudflare Tunnel** 填写 token 并启动；启用自动连接后会随服务启动连接 Tunnel。完整步骤见 [Cloudflare Tunnel 远程访问](features/cloudflare-tunnel.zh-CN.md)。
-
-官方 Docker 镜像已内置 `cloudflared`，非 Docker 部署则需要先按 Cloudflare 官方文档安装 `cloudflared`。
-
 启动服务：
 
 ```bash
@@ -79,7 +75,7 @@ docker run --name sublinkpro -p 8000:8000 \
   -v $PWD/db:/app/db \
   -v $PWD/template:/app/template \
   -v $PWD/logs:/app/logs \
-  -d zerodeng/sublink-pro
+  -d ghcr.io/zephonx/sublinkpro
 ```
 
 </details>
@@ -92,7 +88,7 @@ docker run --name sublinkpro -p 8000:8000 \
   -v $PWD/db:/app/db \
   -v $PWD/template:/app/template \
   -v $PWD/logs:/app/logs \
-  -d zerodeng/sublink-pro:dev
+  -d ghcr.io/zephonx/sublinkpro:dev
 ```
 
 </details>
@@ -164,14 +160,14 @@ docker stop sublinkpro
 docker rm sublinkpro
 
 # 拉取最新镜像
-docker pull zerodeng/sublink-pro
+docker pull ghcr.io/zephonx/sublinkpro
 
 # 重新启动容器（使用与安装时相同的参数）
 docker run --name sublinkpro -p 8000:8000 \
   -v $PWD/db:/app/db \
   -v $PWD/template:/app/template \
   -v $PWD/logs:/app/logs \
-  -d zerodeng/sublink-pro
+  -d ghcr.io/zephonx/sublinkpro
 
 # （可选）清理旧镜像
 docker image prune -f
@@ -207,7 +203,7 @@ docker run -d \
 ```yaml
 services:
   sublinkpro:
-    image: zerodeng/sublink-pro
+    image: ghcr.io/zephonx/sublinkpro
     container_name: sublinkpro
     ports:
       - "8000:8000"

@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 
 // material-ui
 import { alpha, useTheme } from '@mui/material/styles';
@@ -37,7 +36,6 @@ import Switch from '@mui/material/Switch';
 
 // icons
 import AddIcon from '@mui/icons-material/Add';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -46,9 +44,6 @@ import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import CircularProgress from '@mui/material/CircularProgress';
-import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
-import CheckIcon from '@mui/icons-material/Check';
-import UndoIcon from '@mui/icons-material/Undo';
 
 import MainCard from 'ui-component/cards/MainCard';
 import Pagination from 'components/Pagination';
@@ -60,208 +55,21 @@ import {
   deleteTemplate,
   getTemplateUsage,
   getACL4SSRPresets,
-  convertRules,
-  generateTemplateAICandidateStream
+  convertRules
 } from 'api/templates';
-import { getAISettings, getBaseTemplates, updateBaseTemplate } from 'api/settings';
+import { getBaseTemplates, updateBaseTemplate } from 'api/settings';
 import { getNodes } from 'api/nodes';
 import { withAlpha } from 'utils/colorUtils';
 
 // Monaco Editor
-import Editor, { DiffEditor } from '@monaco-editor/react';
-
-const createEmptyTemplateAIAssistant = () => ({
-  summary: '',
-  warnings: [],
-  candidateText: '',
-  revisionHash: '',
-  validation: null,
-  finishReason: '',
-  usage: null,
-  sourceText: '',
-  sourceFilename: '',
-  sourceCategory: '',
-  sourceRuleSource: '',
-  sourceUseProxy: false,
-  sourceProxyLink: '',
-  sourceEnableIncludeAll: false
-});
-
-const normalizeMessages = (messages) => (Array.isArray(messages) ? messages.filter(Boolean) : []);
-
-const JSON_ESCAPE_CHAR_MAP = {
-  '"': '"',
-  '\\': '\\',
-  '/': '/',
-  b: '\b',
-  f: '\f',
-  n: '\n',
-  r: '\r',
-  t: '\t'
-};
-
-const AI_SETUP_ERROR_MARKERS = [
-  'AI \u52a9\u624b\u672a\u542f\u7528',
-  'AI \u8bbe\u7f6e\u4e0d\u5b8c\u6574\uff0c\u8bf7\u5148\u914d\u7f6e Base URL\u3001\u6a21\u578b\u548c API Key'
-];
-
-const createTemplateAISourceSnapshot = (formData, useProxy, proxyLink) => ({
-  sourceText: formData.text,
-  sourceFilename: formData.filename.trim(),
-  sourceCategory: formData.category,
-  sourceRuleSource: formData.ruleSource,
-  sourceUseProxy: useProxy,
-  sourceProxyLink: proxyLink,
-  sourceEnableIncludeAll: formData.enableIncludeAll
-});
-
-const buildTemplateAIAssistantState = (payload, sourceSnapshot, fallbackCandidateText = '') => ({
-  summary: payload?.summary || '',
-  warnings: normalizeMessages(payload?.warnings),
-  candidateText: payload?.candidateText || fallbackCandidateText,
-  revisionHash: payload?.revisionHash || '',
-  validation: payload?.validation || null,
-  finishReason: payload?.finishReason || '',
-  usage: payload?.usage || null,
-  ...sourceSnapshot
-});
-
-const extractResponseUsage = (eventData) => {
-  if (!eventData || typeof eventData !== 'object' || Array.isArray(eventData)) {
-    return null;
-  }
-
-  const response = eventData.response;
-  if (!response || typeof response !== 'object' || Array.isArray(response)) {
-    return null;
-  }
-
-  return response.usage && typeof response.usage === 'object' && !Array.isArray(response.usage) ? response.usage : null;
-};
-
-const extractResponseFinishReason = (eventData) => {
-  if (!eventData || typeof eventData !== 'object' || Array.isArray(eventData)) {
-    return '';
-  }
-
-  const response = eventData.response;
-  if (!response || typeof response !== 'object' || Array.isArray(response)) {
-    return '';
-  }
-
-  return typeof response.status === 'string' ? response.status : '';
-};
-
-const getUsageNumber = (container, key) => {
-  if (!container || typeof container !== 'object' || Array.isArray(container) || !Object.prototype.hasOwnProperty.call(container, key)) {
-    return null;
-  }
-
-  const value = container[key];
-
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string' && value.trim() !== '') {
-    const parsedValue = Number(value);
-
-    if (Number.isFinite(parsedValue)) {
-      return parsedValue;
-    }
-  }
-
-  return null;
-};
-
-const buildTemplateAIUsageItems = (usage, t) => {
-  if (!usage || typeof usage !== 'object' || Array.isArray(usage)) {
-    return [];
-  }
-
-  const inputTokens = getUsageNumber(usage, 'input_tokens') ?? getUsageNumber(usage, 'prompt_tokens');
-  const outputTokens = getUsageNumber(usage, 'output_tokens') ?? getUsageNumber(usage, 'completion_tokens');
-  const inputTokenDetails =
-    usage.input_tokens_details && typeof usage.input_tokens_details === 'object' && !Array.isArray(usage.input_tokens_details)
-      ? usage.input_tokens_details
-      : null;
-  const cacheTokens =
-    getUsageNumber(inputTokenDetails, 'cached_tokens') ??
-    getUsageNumber(usage, 'cached_tokens') ??
-    getUsageNumber(usage, 'cache_tokens') ??
-    getUsageNumber(usage, 'cached_input_tokens');
-
-  return [
-    inputTokens !== null ? { key: 'input', label: t('templates.ai.usage.input'), value: inputTokens } : null,
-    outputTokens !== null ? { key: 'output', label: t('templates.ai.usage.output'), value: outputTokens } : null,
-    cacheTokens !== null ? { key: 'cache', label: t('templates.ai.usage.cache'), value: cacheTokens } : null
-  ].filter(Boolean);
-};
-
-const decodePartialJSONString = (value, startIndex) => {
-  let decoded = '';
-
-  for (let index = startIndex; index < value.length; index += 1) {
-    const currentChar = value[index];
-
-    if (currentChar === '"') {
-      break;
-    }
-
-    if (currentChar !== '\\') {
-      decoded += currentChar;
-      continue;
-    }
-
-    if (index + 1 >= value.length) {
-      break;
-    }
-
-    const nextChar = value[index + 1];
-
-    if (nextChar === 'u') {
-      const unicodeHex = value.slice(index + 2, index + 6);
-      if (unicodeHex.length < 4 || !/^[0-9a-fA-F]{4}$/.test(unicodeHex)) {
-        break;
-      }
-      decoded += String.fromCharCode(parseInt(unicodeHex, 16));
-      index += 5;
-      continue;
-    }
-
-    decoded += JSON_ESCAPE_CHAR_MAP[nextChar] ?? nextChar;
-    index += 1;
-  }
-
-  return decoded;
-};
-
-const extractCandidatePreviewFromStream = (streamBuffer) => {
-  if (!streamBuffer) {
-    return '';
-  }
-
-  const keyMatch = /"candidateText"\s*:\s*"/.exec(streamBuffer);
-  if (!keyMatch) {
-    return '';
-  }
-
-  return decodePartialJSONString(streamBuffer, keyMatch.index + keyMatch[0].length);
-};
+import Editor from '@monaco-editor/react';
 
 export default function TemplateList() {
   const { t } = useTranslation();
   const theme = useTheme();
   const palette = theme.vars?.palette || theme.palette;
   const isDark = theme.palette.mode === 'dark';
-  const aiPromptPrimaryLight = theme.palette.primary.light;
-  const aiPromptPrimaryMain = theme.palette.primary.main;
-  const aiPromptSurface = theme.palette.grey[900];
-  const aiPromptCollapsedSurface = theme.palette.grey[800];
-  const navigate = useNavigate();
   const matchDownMd = useMediaQuery(theme.breakpoints.down('md'));
-  const aiGenerationAbortRef = useRef(null);
-  const aiStreamBufferRef = useRef('');
 
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -273,15 +81,6 @@ export default function TemplateList() {
   const [aclPresets, setAclPresets] = useState([]);
   const [converting, setConverting] = useState(false);
   const [editorFullscreen, setEditorFullscreen] = useState(false);
-  const [templateEditorMode, setTemplateEditorMode] = useState('edit');
-  const [aiPrompt, setAIPrompt] = useState('');
-  const [aiGenerating, setAIGenerating] = useState(false);
-  const [aiAssistant, setAIAssistant] = useState(createEmptyTemplateAIAssistant);
-  const [aiGenerationError, setAIGenerationError] = useState('');
-  const [aiLocalAcceptSnapshot, setAILocalAcceptSnapshot] = useState(null);
-  const [isAIEnabled, setIsAIEnabled] = useState(false);
-  const [aiCommandOpen, setAICommandOpen] = useState(false);
-  const [aiDisabledPromptOpen, setAIDisabledPromptOpen] = useState(false);
   const [errorDialog, setErrorDialog] = useState({ open: false, title: '', message: '' });
   const [usageDialog, setUsageDialog] = useState({ open: false, title: '', message: '', subscriptions: [], action: null });
   const [page, setPage] = useState(0);
@@ -312,25 +111,6 @@ export default function TemplateList() {
   const openConfirm = (title, content, action) => {
     setConfirmInfo({ title, content, action });
     setConfirmOpen(true);
-  };
-
-  const abortAIGeneration = () => {
-    if (aiGenerationAbortRef.current) {
-      aiGenerationAbortRef.current.abort();
-      aiGenerationAbortRef.current = null;
-    }
-    aiStreamBufferRef.current = '';
-  };
-
-  const resetTemplateAIAssistant = () => {
-    abortAIGeneration();
-    setTemplateEditorMode('edit');
-    setAIPrompt('');
-    setAICommandOpen(false);
-    setAIAssistant(createEmptyTemplateAIAssistant());
-    setAIGenerationError('');
-    setAIGenerating(false);
-    setAILocalAcceptSnapshot(null);
   };
 
   const handleConfirmClose = () => {
@@ -369,11 +149,6 @@ export default function TemplateList() {
 
   useEffect(() => {
     fetchTemplates(0, rowsPerPage);
-    getAISettings()
-      .then((res) => {
-        setIsAIEnabled(Boolean(res.data?.enabled));
-      })
-      .catch((err) => console.log('Failed to load AI settings:', err));
     getACL4SSRPresets()
       .then((res) => {
         if (res.data) {
@@ -394,7 +169,6 @@ export default function TemplateList() {
     setUseProxy(false);
     setProxyLink('');
     setEditorFullscreen(false);
-    resetTemplateAIAssistant();
     setDialogOpen(true);
   };
 
@@ -414,7 +188,6 @@ export default function TemplateList() {
     if (template.useProxy) {
       fetchProxyNodes();
     }
-    resetTemplateAIAssistant();
     setDialogOpen(true);
   };
 
@@ -458,178 +231,6 @@ export default function TemplateList() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setEditorFullscreen(false);
-    resetTemplateAIAssistant();
-  };
-
-  useEffect(() => () => abortAIGeneration(), []);
-
-  const handleGenerateWithAI = async () => {
-    if (!aiPrompt.trim()) {
-      showMessage(t('templates.ai.messages.promptRequired'), 'warning');
-      return;
-    }
-
-    abortAIGeneration();
-    const sourceSnapshot = createTemplateAISourceSnapshot(formData, useProxy, proxyLink);
-    const controller = new AbortController();
-    aiGenerationAbortRef.current = controller;
-    aiStreamBufferRef.current = '';
-    let latestCandidatePreview = '';
-
-    setAIGenerating(true);
-    setAIGenerationError('');
-    setTemplateEditorMode('edit');
-    setAILocalAcceptSnapshot(null);
-    setAIAssistant({
-      ...createEmptyTemplateAIAssistant(),
-      ...sourceSnapshot
-    });
-
-    try {
-      const data = await generateTemplateAICandidateStream(
-        {
-          filename: formData.filename.trim(),
-          category: formData.category,
-          currentText: formData.text,
-          userPrompt: aiPrompt.trim(),
-          ruleSource: formData.ruleSource,
-          useProxy,
-          proxyLink,
-          enableIncludeAll: formData.enableIncludeAll
-        },
-        {
-          signal: controller.signal,
-          onStart: () => {
-            aiStreamBufferRef.current = '';
-          },
-          onDelta: (eventData) => {
-            const deltaText = typeof eventData === 'string' ? eventData : eventData?.delta || '';
-            if (!deltaText) {
-              return;
-            }
-
-            aiStreamBufferRef.current += deltaText;
-            const nextCandidatePreview = extractCandidatePreviewFromStream(aiStreamBufferRef.current);
-            latestCandidatePreview = nextCandidatePreview || latestCandidatePreview;
-
-            setAIAssistant((prev) => ({
-              ...prev,
-              candidateText: nextCandidatePreview || prev.candidateText
-            }));
-          },
-          onComplete: (eventData) => {
-            if (!eventData || typeof eventData !== 'object') {
-              return;
-            }
-            setAIAssistant((prev) => ({
-              ...prev,
-              finishReason: extractResponseFinishReason(eventData) || prev.finishReason,
-              usage: extractResponseUsage(eventData) || prev.usage,
-              candidateText: latestCandidatePreview || prev.candidateText
-            }));
-          },
-          onFinal: (eventData) => {
-            if (!eventData || typeof eventData !== 'object') {
-              return;
-            }
-
-            const nextAssistantState = buildTemplateAIAssistantState(eventData, sourceSnapshot, latestCandidatePreview);
-            latestCandidatePreview = nextAssistantState.candidateText;
-            setAIAssistant(nextAssistantState);
-          }
-        }
-      );
-
-      const finalAssistantState = buildTemplateAIAssistantState(data, sourceSnapshot, latestCandidatePreview);
-      setAIGenerationError('');
-
-      if (finalAssistantState.candidateText) {
-        setTemplateEditorMode('diff');
-        showMessage(t('templates.ai.messages.generated'));
-      } else {
-        showMessage(t('templates.ai.messages.emptyCandidate'), 'warning');
-      }
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        return;
-      }
-
-      const errorMessage = error.response?.data?.message || error.message || t('templates.ai.messages.generateFailed');
-      const friendlyErrorMessage = AI_SETUP_ERROR_MARKERS.some((marker) => errorMessage.includes(marker))
-        ? t('templates.ai.messages.setupUnavailable')
-        : errorMessage;
-      setAIGenerationError(errorMessage);
-      showMessage(friendlyErrorMessage, 'error');
-    } finally {
-      if (aiGenerationAbortRef.current === controller) {
-        aiGenerationAbortRef.current = null;
-      }
-      setAIGenerating(false);
-    }
-  };
-
-  const aiCandidateMatchesEditor = Boolean(aiAssistant.candidateText) && aiAssistant.candidateText === formData.text;
-  const aiCandidateOutdated =
-    Boolean(aiAssistant.candidateText) &&
-    !aiCandidateMatchesEditor &&
-    (aiAssistant.sourceText !== formData.text ||
-      aiAssistant.sourceFilename !== formData.filename.trim() ||
-      aiAssistant.sourceCategory !== formData.category ||
-      aiAssistant.sourceRuleSource !== formData.ruleSource ||
-      aiAssistant.sourceUseProxy !== useProxy ||
-      aiAssistant.sourceProxyLink !== proxyLink ||
-      aiAssistant.sourceEnableIncludeAll !== formData.enableIncludeAll);
-  const canReviewAICandidate = Boolean(aiAssistant.candidateText) && !aiCandidateOutdated && !aiCandidateMatchesEditor;
-  const isDiffMode = templateEditorMode === 'diff';
-  const showDiffReview = isDiffMode && canReviewAICandidate;
-  const canAcceptAICandidateLocally = Boolean(aiAssistant.candidateText) && !aiCandidateOutdated && !aiCandidateMatchesEditor;
-  const canRevertLocalAIAccept = Boolean(aiLocalAcceptSnapshot);
-  const canSwitchToDiffMode = canReviewAICandidate;
-
-  useEffect(() => {
-    if (templateEditorMode === 'diff' && (!canSwitchToDiffMode || !isAIEnabled)) {
-      setTemplateEditorMode('edit');
-    }
-  }, [templateEditorMode, canSwitchToDiffMode, isAIEnabled]);
-
-  const handleAcceptAICandidateLocally = () => {
-    if (!aiAssistant.candidateText) {
-      showMessage(t('templates.ai.messages.generateFirst'), 'warning');
-      return;
-    }
-
-    if (aiCandidateMatchesEditor) {
-      showMessage(t('templates.ai.messages.alreadyApplied'), 'info');
-      return;
-    }
-
-    if (aiCandidateOutdated) {
-      showMessage(t('templates.ai.messages.outdatedAccept'), 'warning');
-      return;
-    }
-
-    setAILocalAcceptSnapshot({ text: formData.text });
-    setTemplateEditorMode('edit');
-    setFormData((prev) => ({
-      ...prev,
-      text: aiAssistant.candidateText
-    }));
-    showMessage(t('templates.ai.messages.accepted'));
-  };
-
-  const handleRevertLastLocalAIAccept = () => {
-    if (!aiLocalAcceptSnapshot) {
-      showMessage(t('templates.ai.messages.noRevert'), 'warning');
-      return;
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      text: aiLocalAcceptSnapshot.text || ''
-    }));
-    setTemplateEditorMode('edit');
-    setAILocalAcceptSnapshot(null);
-    showMessage(t('templates.ai.messages.reverted'));
   };
 
   const handleConvertTemplate = async (expand) => {
@@ -669,11 +270,6 @@ export default function TemplateList() {
 
   const handleSubmit = async () => {
     try {
-      if (templateEditorMode === 'diff') {
-        showMessage(t('templates.ai.messages.diffSaveBlocked'), 'warning');
-        return;
-      }
-
       if (isEdit) {
         await updateTemplate({
           oldname: currentTemplate.file,
@@ -700,7 +296,6 @@ export default function TemplateList() {
       }
       setEditorFullscreen(false);
       setDialogOpen(false);
-      resetTemplateAIAssistant();
       fetchTemplates(page, rowsPerPage);
     } catch (error) {
       console.log(error);
@@ -764,48 +359,8 @@ export default function TemplateList() {
     }
   };
 
-  const aiWorkspacePanelSx = {
-    border: 1,
-    borderColor: 'divider',
-    borderRadius: 1,
-    bgcolor: 'background.paper'
-  };
-
-  const isEditMode = templateEditorMode === 'edit';
-
-  const aiStatusText = aiGenerating
-    ? t('templates.ai.status.generating')
-    : aiGenerationError
-      ? aiGenerationError
-      : aiCandidateOutdated
-        ? t('templates.ai.status.outdated')
-        : !isEdit && aiAssistant.candidateText
-          ? t('templates.ai.status.unsavedTemplate')
-          : showDiffReview
-            ? t('templates.ai.status.diffReadonly')
-            : aiCandidateMatchesEditor
-              ? t('templates.ai.status.applied')
-              : canRevertLocalAIAccept
-                ? t('templates.ai.status.revertAvailable')
-                : aiAssistant.candidateText
-                  ? t('templates.ai.status.ready')
-                  : t('templates.ai.status.prompt');
-  const aiStatusColor = aiGenerationError
-    ? 'error.main'
-    : aiCandidateOutdated
-      ? 'warning.main'
-      : showDiffReview
-        ? alpha(theme.palette.common.white, 0.92)
-        : aiCandidateMatchesEditor
-          ? 'success.main'
-          : alpha(theme.palette.common.white, 0.88);
-  const isAISetupIssue = AI_SETUP_ERROR_MARKERS.some((marker) => aiGenerationError.includes(marker));
-  const aiSetupGuidanceText = isAISetupIssue ? t('templates.ai.setupGuidance') : '';
-  const aiFriendlyGenerationError = isAISetupIssue ? t('templates.ai.setupUnavailable') : aiGenerationError;
-  const aiUsageItems = buildTemplateAIUsageItems(aiAssistant.usage, t);
-
   const configureTemplateMonacoTheme = (monaco) => {
-    monaco.editor.defineTheme('template-ai-editor', {
+    monaco.editor.defineTheme('template-editor', {
       base: 'vs-dark',
       inherit: true,
       rules: [],
@@ -815,398 +370,8 @@ export default function TemplateList() {
     });
   };
 
-  const aiStateChips = (
-    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-      <Chip
-        size="small"
-        variant="filled"
-        label={isEditMode ? t('templates.ai.mode.edit') : t('templates.ai.mode.diff')}
-        color={isEditMode ? 'primary' : 'default'}
-        sx={{
-          color: 'common.white',
-          bgcolor: isEditMode ? undefined : alpha(theme.palette.common.white, 0.14),
-          '& .MuiChip-label': {
-            fontWeight: 600
-          }
-        }}
-      />
-      {aiGenerating ? (
-        <Chip
-          size="small"
-          variant="outlined"
-          color="primary"
-          label={t('templates.ai.statusChip.generating')}
-          sx={{ color: 'common.white' }}
-        />
-      ) : null}
-      {!aiGenerating ? (
-        <Chip
-          size="small"
-          variant="outlined"
-          color={
-            aiGenerationError
-              ? 'error'
-              : aiCandidateOutdated
-                ? 'warning'
-                : aiCandidateMatchesEditor
-                  ? 'success'
-                  : aiAssistant.candidateText
-                    ? 'info'
-                    : 'default'
-          }
-          label={
-            aiGenerationError
-              ? t('templates.ai.statusChip.failed')
-              : aiCandidateOutdated
-                ? t('templates.ai.statusChip.outdated')
-                : aiCandidateMatchesEditor
-                  ? t('templates.ai.statusChip.applied')
-                  : aiAssistant.candidateText
-                    ? t('templates.ai.statusChip.ready')
-                    : t('templates.ai.statusChip.notGenerated')
-          }
-          sx={{
-            color:
-              aiGenerationError || aiCandidateOutdated || aiCandidateMatchesEditor || aiAssistant.candidateText
-                ? 'common.white'
-                : alpha(theme.palette.common.white, 0.92),
-            borderColor:
-              !aiGenerationError && !aiCandidateOutdated && !aiCandidateMatchesEditor && !aiAssistant.candidateText
-                ? alpha(theme.palette.common.white, 0.22)
-                : undefined
-          }}
-        />
-      ) : null}
-      {canRevertLocalAIAccept ? (
-        <Chip size="small" variant="outlined" color="info" label={t('templates.ai.statusChip.canRevert')} sx={{ color: 'common.white' }} />
-      ) : null}
-      {!isEdit && aiAssistant.candidateText ? (
-        <Chip
-          size="small"
-          variant="outlined"
-          label={t('templates.ai.statusChip.unsavedTemplate')}
-          sx={{ color: 'common.white', borderColor: alpha(theme.palette.common.white, 0.22) }}
-        />
-      ) : null}
-    </Stack>
-  );
-
-  const renderAIControlPanel = ({ compact = false, minimal = false } = {}) => {
-    if (!isAIEnabled) return null;
-    const dense = compact || minimal;
-
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: dense ? 0.75 : 1,
-          justifyContent: 'flex-end'
-        }}
-      >
-        <Box
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            border: 1,
-            borderColor: 'divider',
-            borderRadius: 1,
-            overflow: 'hidden',
-            bgcolor: alpha(theme.palette.background.default, 0.4),
-            flexShrink: 0
-          }}
-        >
-          <Button
-            variant={isEditMode ? 'contained' : 'text'}
-            size="small"
-            color={isEditMode ? 'primary' : 'inherit'}
-            startIcon={<EditIcon fontSize="small" />}
-            disabled={aiGenerating}
-            onClick={() => setTemplateEditorMode('edit')}
-            sx={{
-              borderRadius: 0,
-              minWidth: dense ? 78 : 86,
-              px: 1.25,
-              ...(isEditMode
-                ? {}
-                : {
-                    color: 'text.secondary'
-                  })
-            }}
-          >
-            {t('templates.ai.mode.edit')}
-          </Button>
-          <Divider orientation="vertical" flexItem />
-          <Button
-            variant={showDiffReview ? 'contained' : 'text'}
-            size="small"
-            color={showDiffReview ? 'primary' : 'inherit'}
-            startIcon={<CompareArrowsIcon />}
-            disabled={!canSwitchToDiffMode || aiGenerating}
-            onClick={() => setTemplateEditorMode('diff')}
-            sx={{
-              borderRadius: 0,
-              minWidth: dense ? 78 : 86,
-              px: 1.25,
-              ...(showDiffReview
-                ? {}
-                : {
-                    color: 'text.secondary'
-                  })
-            }}
-          >
-            {t('templates.ai.mode.diff')}
-          </Button>
-        </Box>
-      </Box>
-    );
-  };
-
-  const renderAIFloatingCommandBar = ({ fullscreen = false } = {}) => {
-    if (!isAIEnabled) return null;
-    return (
-      <Box
-        sx={{
-          position: 'absolute',
-          top: fullscreen ? 18 : 12,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '100%',
-          maxWidth: '100%',
-          zIndex: 6,
-          display: 'flex',
-          justifyContent: 'center'
-        }}
-      >
-        <Box
-          role={aiCommandOpen ? undefined : 'button'}
-          tabIndex={aiCommandOpen ? undefined : 0}
-          aria-label={aiCommandOpen ? undefined : t('templates.ai.aria.expandCommand')}
-          onClick={aiCommandOpen ? undefined : () => setAICommandOpen(true)}
-          onKeyDown={
-            aiCommandOpen
-              ? undefined
-              : (event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    setAICommandOpen(true);
-                  }
-                }
-          }
-          sx={{
-            width: aiCommandOpen
-              ? {
-                  xs: 'calc(100% - 32px)',
-                  sm: fullscreen ? 'min(560px, calc(100% - 84px))' : 'min(500px, calc(100% - 64px))'
-                }
-              : 38,
-            minHeight: 38,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.75,
-            px: aiCommandOpen ? 0.75 : 0,
-            py: aiCommandOpen ? 0.5 : 0,
-            justifyContent: aiCommandOpen ? 'flex-start' : 'center',
-            borderRadius: 999,
-            border: 1,
-            borderColor: alpha(aiPromptPrimaryLight, aiCommandOpen ? 0.34 : 0.42),
-            bgcolor: alpha(aiCommandOpen ? aiPromptSurface : aiPromptCollapsedSurface, aiCommandOpen ? 0.82 : 0.72),
-            boxShadow: `0 ${aiCommandOpen ? 10 : 8}px ${aiCommandOpen ? 26 : 20}px ${alpha(theme.palette.common.black, aiCommandOpen ? 0.24 : 0.18)}`,
-            backdropFilter: 'blur(10px)',
-            overflow: 'hidden',
-            cursor: aiCommandOpen ? 'default' : 'pointer',
-            transition: theme.transitions.create(
-              ['width', 'min-height', 'padding', 'border-radius', 'background-color', 'border-color', 'box-shadow'],
-              {
-                duration: theme.transitions.duration.shorter,
-                easing: theme.transitions.easing.easeOut
-              }
-            ),
-            '&:hover': aiCommandOpen
-              ? undefined
-              : {
-                  borderColor: alpha(aiPromptPrimaryMain, 0.62),
-                  bgcolor: alpha(aiPromptSurface, 0.9),
-                  boxShadow: `0 12px 28px ${alpha(aiPromptPrimaryMain, 0.18)}`
-                },
-            '&:focus-visible': {
-              outline: `2px solid ${alpha(aiPromptPrimaryLight, 0.68)}`,
-              outlineOffset: 3
-            }
-          }}
-        >
-          <IconButton
-            component={aiCommandOpen ? 'button' : 'div'}
-            size="small"
-            aria-label={aiCommandOpen ? t('templates.ai.aria.collapseCommand') : undefined}
-            onClick={
-              aiCommandOpen
-                ? (e) => {
-                    e.stopPropagation();
-                    setAICommandOpen(false);
-                  }
-                : undefined
-            }
-            disabled={aiCommandOpen && aiGenerating}
-            disableRipple={!aiCommandOpen}
-            sx={{
-              width: aiCommandOpen ? 32 : 36,
-              height: aiCommandOpen ? 32 : 36,
-              flexShrink: 0,
-              color: aiCommandOpen ? alpha(theme.palette.common.white, aiGenerating ? 0.48 : 0.94) : alpha(aiPromptPrimaryLight, 0.95),
-              transition: theme.transitions.create(['width', 'height', 'color', 'background-color']),
-              '&:hover': aiCommandOpen
-                ? {
-                    bgcolor: alpha(theme.palette.common.white, 0.08)
-                  }
-                : {
-                    bgcolor: 'transparent'
-                  },
-              '&.Mui-disabled': {
-                color: alpha(theme.palette.common.white, 0.42)
-              }
-            }}
-          >
-            <AutoAwesomeIcon fontSize="small" />
-          </IconButton>
-          {aiCommandOpen ? (
-            <>
-              <TextField
-                fullWidth
-                size="small"
-                value={aiPrompt}
-                onChange={(e) => setAIPrompt(e.target.value)}
-                disabled={aiGenerating}
-                placeholder={t('templates.ai.promptPlaceholder')}
-                inputProps={{ 'aria-label': t('templates.ai.promptAria') }}
-                sx={{
-                  minWidth: 0,
-                  '& .MuiOutlinedInput-root': {
-                    bgcolor: 'transparent',
-                    color: alpha(theme.palette.common.white, 0.96),
-                    height: 34,
-                    pr: 0.25,
-                    borderRadius: 999,
-                    '&.Mui-disabled': {
-                      color: alpha(theme.palette.common.white, 0.72),
-                      WebkitTextFillColor: alpha(theme.palette.common.white, 0.72)
-                    },
-                    '& fieldset': {
-                      borderColor: 'transparent'
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'transparent'
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: alpha(theme.palette.primary.main, 0.6)
-                    }
-                  },
-                  '& .MuiInputBase-input': {
-                    color: alpha(theme.palette.common.white, 0.96)
-                  },
-                  '& .MuiInputBase-input.Mui-disabled': {
-                    WebkitTextFillColor: alpha(theme.palette.common.white, 0.72)
-                  },
-                  '& .MuiInputBase-input::placeholder': {
-                    color: alpha(theme.palette.common.white, 0.64),
-                    opacity: 1
-                  }
-                }}
-              />
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={aiGenerating ? <CircularProgress size={16} sx={{ color: 'common.white' }} /> : <AutoAwesomeIcon />}
-                disabled={aiGenerating}
-                onClick={handleGenerateWithAI}
-                sx={{
-                  flexShrink: 0,
-                  minWidth: 92,
-                  borderRadius: 999,
-                  color: 'common.white',
-                  boxShadow: 'none',
-                  '&.Mui-disabled': {
-                    color: 'common.white',
-                    bgcolor: alpha(theme.palette.primary.main, 0.5)
-                  }
-                }}
-              >
-                {aiGenerating ? t('templates.ai.generating') : t('templates.ai.generate')}
-              </Button>
-              <IconButton
-                size="small"
-                disabled={!canAcceptAICandidateLocally || aiGenerating}
-                onClick={handleAcceptAICandidateLocally}
-                sx={{
-                  flexShrink: 0,
-                  borderRadius: 1,
-                  bgcolor: alpha(theme.palette.common.white, 0.06),
-                  color:
-                    canAcceptAICandidateLocally && !aiGenerating
-                      ? alpha(theme.palette.common.white, 0.96)
-                      : alpha(theme.palette.common.white, 0.42),
-                  '&.Mui-disabled': {
-                    bgcolor: alpha(theme.palette.common.white, 0.04),
-                    color: alpha(theme.palette.common.white, 0.34)
-                  }
-                }}
-              >
-                <CheckIcon fontSize="small" />
-              </IconButton>
-              {isEditMode ? (
-                <IconButton
-                  size="small"
-                  disabled={!canRevertLocalAIAccept || aiGenerating}
-                  onClick={handleRevertLastLocalAIAccept}
-                  sx={{
-                    flexShrink: 0,
-                    borderRadius: 1,
-                    bgcolor: alpha(theme.palette.common.white, 0.06),
-                    color:
-                      canRevertLocalAIAccept && !aiGenerating
-                        ? alpha(theme.palette.common.white, 0.92)
-                        : alpha(theme.palette.common.white, 0.4),
-                    '&.Mui-disabled': {
-                      bgcolor: alpha(theme.palette.common.white, 0.04),
-                      color: alpha(theme.palette.common.white, 0.32)
-                    }
-                  }}
-                >
-                  <UndoIcon fontSize="small" />
-                </IconButton>
-              ) : null}
-              {isAISetupIssue ? (
-                <Button
-                  size="small"
-                  variant="text"
-                  disabled={aiGenerating}
-                  onClick={() => navigate('/system/settings', { state: { targetTab: 'ai' } })}
-                  sx={{
-                    flexShrink: 0,
-                    minWidth: 'auto',
-                    px: 0.75,
-                    color: alpha(theme.palette.common.white, 0.92),
-                    textDecoration: 'underline',
-                    textUnderlineOffset: '2px',
-                    '&.Mui-disabled': {
-                      color: alpha(theme.palette.common.white, 0.5)
-                    }
-                  }}
-                >
-                  {t('templates.ai.goSettings')}
-                </Button>
-              ) : null}
-            </>
-          ) : null}
-        </Box>
-      </Box>
-    );
-  };
-
   const renderTemplateEditor = ({ fullscreen = false } = {}) => (
     <Box
-      className="template-ai-editor-shell"
       sx={{
         position: 'relative',
         display: 'flex',
@@ -1219,19 +384,9 @@ export default function TemplateList() {
               borderRadius: 1,
               overflow: 'hidden'
             }
-          : null),
-        '& .monaco-editor, & .monaco-diff-editor': {
-          '--vscode-editorGutter-addedBackground': theme.palette.success.main,
-          '--vscode-editorGutter-modifiedBackground': theme.palette.primary.main,
-          '--vscode-editorGutter-deletedBackground': theme.palette.warning.main,
-          '--vscode-diffEditor-insertedTextBackground': alpha(theme.palette.success.main, 0.2),
-          '--vscode-diffEditor-removedTextBackground': alpha(theme.palette.warning.main, 0.16),
-          '--vscode-diffEditor-insertedLineBackground': alpha(theme.palette.success.main, 0.08),
-          '--vscode-diffEditor-removedLineBackground': alpha(theme.palette.warning.main, 0.08)
-        }
+          : null)
       }}
     >
-      {renderAIFloatingCommandBar({ fullscreen })}
       {converting && (
         <Box
           sx={{
@@ -1254,207 +409,27 @@ export default function TemplateList() {
           </Stack>
         </Box>
       )}
-      {showDiffReview ? (
-        <DiffEditor
-          height={fullscreen ? '100%' : '350px'}
-          language={formData.category === 'surge' ? 'ini' : 'yaml'}
-          original={aiAssistant.sourceText || ''}
-          modified={aiAssistant.candidateText || ''}
-          theme="template-ai-editor"
-          beforeMount={configureTemplateMonacoTheme}
-          options={{
-            renderSideBySide: true,
-            readOnly: true,
-            originalEditable: false,
-            minimap: { enabled: !matchDownMd },
-            fontSize: matchDownMd ? 12 : 14,
-            wordWrap: 'on',
-            contextmenu: true,
-            automaticLayout: true,
-            scrollBeyondLastLine: false,
-            lineNumbers: matchDownMd ? 'off' : 'on',
-            renderOverviewRuler: !matchDownMd,
-            diffWordWrap: 'on'
-          }}
-        />
-      ) : (
-        <Editor
-          height={fullscreen ? '100%' : '350px'}
-          language={formData.category === 'surge' ? 'ini' : 'yaml'}
-          value={formData.text}
-          onChange={(value) => {
-            setFormData({ ...formData, text: value || '' });
-          }}
-          theme="template-ai-editor"
-          beforeMount={configureTemplateMonacoTheme}
-          options={{
-            minimap: { enabled: !matchDownMd },
-            fontSize: matchDownMd ? 12 : 14,
-            readOnly: converting,
-            wordWrap: 'on',
-            contextmenu: true,
-            selectOnLineNumbers: true,
-            automaticLayout: true,
-            scrollBeyondLastLine: false,
-            lineNumbers: matchDownMd ? 'off' : 'on'
-          }}
-        />
-      )}
-      {isAIEnabled && aiCommandOpen ? (
-        <Box
-          sx={{
-            position: 'absolute',
-            right: { xs: 24, sm: 32 },
-            bottom: 16,
-            maxWidth: { xs: 'calc(100% - 48px)', sm: 380 },
-            px: 1.25,
-            py: 0.75,
-            borderRadius: 1,
-            bgcolor: alpha(theme.palette.grey[900], 0.76),
-            backdropFilter: 'blur(8px)',
-            border: 1,
-            borderColor: alpha(theme.palette.common.white, 0.12),
-            boxShadow: `0 8px 24px ${alpha(theme.palette.common.black, 0.22)}`,
-            zIndex: 5,
-            pointerEvents: 'none'
-          }}
-        >
-          <Stack spacing={0.75} sx={{ minWidth: 0 }}>
-            {aiStateChips}
-            <Typography
-              variant="caption"
-              sx={{
-                color: aiCandidateMatchesEditor ? 'common.white' : isAISetupIssue ? alpha(theme.palette.common.white, 0.94) : aiStatusColor,
-                display: 'block',
-                lineHeight: 1.45,
-                textShadow: aiCandidateMatchesEditor ? `0 1px 2px ${alpha(theme.palette.common.black, 0.45)}` : 'none'
-              }}
-            >
-              {isAISetupIssue ? aiFriendlyGenerationError : aiStatusText}
-            </Typography>
-            {isAISetupIssue ? (
-              <Typography variant="caption" sx={{ color: alpha(theme.palette.common.white, 0.76), display: 'block', lineHeight: 1.4 }}>
-                {aiSetupGuidanceText}
-              </Typography>
-            ) : null}
-            {aiUsageItems.length > 0 ? (
-              <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                {aiUsageItems.map((item) => (
-                  <Chip
-                    key={item.key}
-                    size="small"
-                    variant="outlined"
-                    label={`${item.label} ${item.value}`}
-                    sx={{
-                      color: alpha(theme.palette.common.white, 0.92),
-                      borderColor: alpha(theme.palette.common.white, 0.18),
-                      bgcolor: alpha(theme.palette.common.white, 0.04),
-                      '& .MuiChip-label': {
-                        px: 1,
-                        fontWeight: 500
-                      }
-                    }}
-                  />
-                ))}
-              </Stack>
-            ) : null}
-          </Stack>
-        </Box>
-      ) : !isAIEnabled ? (
-        <Box
-          sx={{
-            position: 'absolute',
-            right: { xs: 14, sm: 18 },
-            bottom: 16,
-            zIndex: 5,
-            display: 'flex',
-            justifyContent: 'flex-end',
-            maxWidth: { xs: 'calc(100% - 28px)', sm: 320 },
-            pointerEvents: 'auto'
-          }}
-        >
-          <Box
-            component="button"
-            type="button"
-            aria-label={aiDisabledPromptOpen ? t('templates.ai.aria.collapseDisabledPrompt') : t('templates.ai.aria.viewDisabledPrompt')}
-            onClick={() => setAIDisabledPromptOpen((open) => !open)}
-            sx={{
-              width: aiDisabledPromptOpen ? { xs: 248, sm: 292 } : 38,
-              minHeight: aiCommandOpen ? 44 : 38,
-              p: 0,
-              border: 1,
-              borderColor: alpha(aiPromptPrimaryLight, aiDisabledPromptOpen ? 0.46 : 0.34),
-              borderRadius: 999,
-              bgcolor: aiDisabledPromptOpen ? alpha(aiPromptSurface, 0.86) : alpha(aiPromptCollapsedSurface, 0.68),
-              color: alpha(theme.palette.common.white, 0.92),
-              backdropFilter: 'blur(10px)',
-              boxShadow: `0 10px 24px ${alpha(theme.palette.common.black, aiDisabledPromptOpen ? 0.28 : 0.18)}`,
-              cursor: 'pointer',
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: aiDisabledPromptOpen ? 'flex-start' : 'center',
-              transition: theme.transitions.create(['width', 'background-color', 'border-color', 'box-shadow', 'transform'], {
-                duration: theme.transitions.duration.shorter,
-                easing: theme.transitions.easing.easeOut
-              }),
-              animation: aiDisabledPromptOpen ? 'none' : 'template-ai-disabled-pulse 2.8s ease-in-out infinite',
-              '@keyframes template-ai-disabled-pulse': {
-                '0%, 100%': { transform: 'scale(1)' },
-                '50%': { transform: 'scale(1.06)' }
-              },
-              '&:hover': {
-                borderColor: alpha(aiPromptPrimaryMain, 0.58),
-                bgcolor: alpha(aiPromptSurface, 0.9),
-                boxShadow: `0 12px 28px ${alpha(aiPromptPrimaryMain, 0.18)}`
-              }
-            }}
-          >
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                color: alpha(aiPromptPrimaryLight, 0.95)
-              }}
-            >
-              <AutoAwesomeIcon fontSize="small" />
-            </Box>
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
-              sx={{
-                minWidth: 0,
-                pr: 1.25,
-                opacity: aiDisabledPromptOpen ? 1 : 0,
-                transform: aiDisabledPromptOpen ? 'translateX(0)' : 'translateX(8px)',
-                transition: theme.transitions.create(['opacity', 'transform'], { duration: theme.transitions.duration.shorter }),
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <Typography variant="caption" sx={{ color: alpha(theme.palette.common.white, 0.82) }}>
-                {t('templates.ai.disabled')}
-              </Typography>
-              <Typography
-                component="span"
-                variant="caption"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  navigate('/system/settings', { state: { targetTab: 'ai' } });
-                }}
-                sx={{ color: aiPromptPrimaryLight, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}
-              >
-                {t('templates.ai.goSettingsShort')}
-              </Typography>
-            </Stack>
-          </Box>
-        </Box>
-      ) : null}
+      <Editor
+        height={fullscreen ? '100%' : '350px'}
+        language={formData.category === 'surge' ? 'ini' : 'yaml'}
+        value={formData.text}
+        onChange={(value) => {
+          setFormData({ ...formData, text: value || '' });
+        }}
+        theme="template-editor"
+        beforeMount={configureTemplateMonacoTheme}
+        options={{
+          minimap: { enabled: !matchDownMd },
+          fontSize: matchDownMd ? 12 : 14,
+          readOnly: converting,
+          wordWrap: 'on',
+          contextmenu: true,
+          selectOnLineNumbers: true,
+          automaticLayout: true,
+          scrollBeyondLastLine: false,
+          lineNumbers: matchDownMd ? 'off' : 'on'
+        }}
+      />
     </Box>
   );
 
@@ -1652,7 +627,6 @@ export default function TemplateList() {
           </Stack>
           {editorFullscreen && (
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap justifyContent="flex-end" alignItems="center">
-              {renderAIControlPanel({ compact: true })}
               <Button variant="outlined" size="small" startIcon={<FullscreenExitIcon />} onClick={() => setEditorFullscreen(false)}>
                 {t('templates.actions.exitFullscreen')}
               </Button>
@@ -1835,18 +809,7 @@ export default function TemplateList() {
                     {t('templates.actions.clearContent')}
                   </Button>
                 </Stack>
-                <Box
-                  sx={{
-                    ...aiWorkspacePanelSx,
-                    p: { xs: 1, md: 1.25 },
-                    display: 'flex',
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    alignItems: { xs: 'stretch', sm: 'center' },
-                    justifyContent: 'flex-end',
-                    gap: 1.5
-                  }}
-                >
-                  {renderAIControlPanel({ minimal: true })}
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button
                     variant="outlined"
                     size="small"
@@ -1878,7 +841,7 @@ export default function TemplateList() {
         {!editorFullscreen && (
           <DialogActions>
             <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
-            <Button variant="contained" disabled={templateEditorMode === 'diff'} onClick={handleSubmit}>
+            <Button variant="contained" onClick={handleSubmit}>
               {t('common.confirm')}
             </Button>
           </DialogActions>

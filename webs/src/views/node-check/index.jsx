@@ -53,7 +53,12 @@ import { getTags } from 'api/tags';
 // local components
 import NodeCheckProfileFormDialog from 'views/nodes/component/NodeCheckProfileFormDialog';
 
-import { buildNodeCheckProfilePayload, formatUnlockProvidersSummary, setUnlockMeta } from 'views/nodes/utils';
+import {
+  buildNodeCheckProfilePayload,
+  formatNodeCheckChainFilterSummary,
+  formatUnlockProvidersSummary,
+  setUnlockMeta
+} from 'views/nodes/utils';
 
 // ==============================|| 节点检测策略管理 ||============================== //
 
@@ -340,6 +345,13 @@ export default function NodeCheckList() {
                         sx={getNodeCheckStrategyChipSx(themeTokens, 'info')}
                       />
                     )}
+                    {profile.chainFilterEnabled && (
+                      <Chip
+                        label={t('nodes.nodeCheckProfiles.detect.chainFilter')}
+                        size="small"
+                        sx={getNodeCheckStrategyChipSx(themeTokens, 'warning')}
+                      />
+                    )}
                   </Box>
                   <Switch
                     size="small"
@@ -422,6 +434,24 @@ export default function NodeCheckList() {
                         {t('nodes.nodeCheckProfiles.unlockProviders', {
                           providers: formatUnlockProvidersSummary(profile.unlockProviders, 2)
                         })}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {profile.chainFilterEnabled && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0, overflow: 'hidden' }}>
+                      <FilterListIcon sx={{ fontSize: 14, opacity: 0.6, flexShrink: 0 }} />
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          minWidth: 0
+                        }}
+                      >
+                        {formatNodeCheckChainFilterSummary(profile)}
                       </Typography>
                     </Box>
                   )}

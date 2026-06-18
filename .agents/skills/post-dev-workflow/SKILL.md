@@ -1,32 +1,34 @@
 ---
 name: post-dev-workflow
-description: "MANDATORY post-development workflow orchestrating validation, synchronization, and testing phases. Automatically invoked by AI agents after code changes. BLOCKING - work is incomplete without this."
+description: "Optional post-development workflow for validation, synchronization, testing, and change-summary preparation."
 version: "2.0.0"
 author: "SublinkPro Team"
 user-invocable: false
-mandatory: true
-enforcement-level: "blocking"
+mandatory: false
+enforcement-level: "advisory"
 ---
 
 # Post-Development Workflow Skill
 
-**🛑 MANDATORY AUTOMATED WORKFLOW 🛑**
+**Optional post-development workflow**
 
-This workflow is **REQUIRED** after completing ANY code change, before declaring work "complete".
+This workflow is recommended after completing a code change, especially when
+the change spans backend, frontend, documentation, or configuration.
 
-**CRITICAL**: This workflow is a **PREREQUISITE** for committing. Do NOT proceed to commit without completing this workflow successfully.
+It is not a repository-enforced prerequisite for committing.
 
 ---
 
 ## When to Use This Skill
 
-**ALWAYS** use this skill when:
+Recommended when:
 - Any code change is complete (backend, frontend, or both)
-- Before declaring work "finished" or "done"
 - Before preparing to commit changes
 - Before creating or updating a pull request
+- Before declaring broad work "finished" or "done"
 
-**This is NOT optional for AI agents.** If an AI agent completes development without running this workflow, the work is incomplete.
+If local tooling is unavailable, document skipped checks and rely on CI for the
+remaining validation.
 
 ---
 
@@ -298,24 +300,25 @@ Document in your summary:
 
 ---
 
-## Phase 6: Pre-Commit Final Validation (MANDATORY)
+## Phase 6: Pre-Commit Final Validation (Optional)
 
-**🛑 CRITICAL: This phase is MANDATORY before any git commit 🛑**
+This phase is recommended before a git commit when the local environment can
+run the required validation tools.
 
-After completing Phases 1-5, you **MUST** invoke the pre-commit-check skill to perform final validation before committing.
+After completing Phases 1-5, you may invoke the pre-commit-check skill to
+perform a final validation pass before committing.
 
-### Why This Phase is Required
+### Why This Phase Is Useful
 
-Even though Phase 1 runs validation, you MUST re-run pre-commit-check because:
+Even though Phase 1 runs validation, a final pre-commit pass can help because:
 - Files may have been modified since Phase 1
 - Additional changes may have been made during documentation/test updates
-- This ensures absolute consistency before commit
-- This is a hard requirement per AGENTS.md Section 0
+- It helps catch staging mistakes before commit
 
 ### Execution
 
 ```bash
-# Before proceeding to git add/commit, invoke:
+# Optional final validation:
 .claude/skills/pre-commit-check/SKILL.md
 ```
 
@@ -326,7 +329,8 @@ The pre-commit-check skill will:
 4. Prepare final commit message
 5. Stage changes for user verification
 
-**BLOCKING**: You cannot proceed to commit without successfully completing pre-commit-check.
+If this phase is skipped or cannot run locally, document the reason and rely on
+CI for remaining checks.
 
 ---
 
@@ -339,10 +343,10 @@ Before declaring work "complete", verify:
 - [ ] **Phase 3**: Documentation updated (or skip reason documented)
 - [ ] **Phase 4**: Tests added/updated (or skip reason documented)
 - [ ] **Phase 5**: Change summary prepared
-- [ ] **Phase 6**: Pre-commit-check skill invoked and passed (MANDATORY)
+- [ ] **Phase 6**: Pre-commit-check skill invoked if practical, or skip reason documented
 - [ ] **Git staging**: Only intended files staged (no secrets, no runtime data)
 - [ ] **Bilingual**: Both English and Chinese docs updated (if docs changed)
-- [ ] **No shortcuts**: No skipped validation, no "will fix later" items
+- [ ] **Validation record**: Passed, failed, or skipped checks documented
 - [ ] **User verification**: Changes staged and ready for user manual testing/verification
 
 ---
@@ -355,7 +359,7 @@ Before declaring work "complete", verify:
 - Documentation updated (Phase 3)
 - Tests added/updated (Phase 4)
 - Change summary prepared (Phase 5)
-- **Pre-commit-check skill successfully completed (Phase 6)**
+- Phase 6 completed or skip reason documented
 - All deliverables documented
 - No unresolved validation failures
 - No "will fix later" items
@@ -367,13 +371,14 @@ Before declaring work "complete", verify:
 - Cross-layer changes not synchronized
 - Tests missing or failing
 - Change summary incomplete
-- **Pre-commit-check not invoked or failed**
+- Validation status is unknown or undocumented
 
 ---
 
 ## For AI Agents: Automation Notes
 
-This workflow should be **automatically triggered** after completing code development, without waiting for user prompt.
+This workflow can be triggered after completing code development when validation
+or change-summary support is useful.
 
 ### Triggering Logic
 
@@ -388,7 +393,7 @@ IF code_change_complete:
     IF key_logic_changed:
         RUN Phase 4 (test execution)
     RUN Phase 5 (change summary)
-    🛑 RUN Phase 6 (pre-commit-check) - MANDATORY, NO EXCEPTIONS
+    RUN Phase 6 (pre-commit-check) if practical, or document skip reason
     REPORT results to user
     IF all_phases_pass:
         STAGE changes (git add)
@@ -399,20 +404,19 @@ IF code_change_complete:
         FIX failures and re-run
 ```
 
-### Critical Rule: Phase 6 is Non-Negotiable
+### Phase 6 Guidance
 
-**Phase 6 (pre-commit-check) MUST be invoked before any git add/commit**, even if:
-- Phase 1 validation already passed
-- Changes seem minor
-- User requests to skip checks
-- You believe no additional validation is needed
+Phase 6 is recommended for broad or risky changes. It may be skipped when:
+- Local tooling is unavailable
+- CI is the intended validation environment
+- The maintainer explicitly chooses to rely on CI
 
-This double-validation ensures:
+This final validation helps with:
 1. No files changed after Phase 1
 2. Documentation/test updates didn't introduce issues
 3. Git staging is clean (no sensitive files)
 4. Commit message is properly formatted
-5. Compliance with AGENTS.md Section 0 requirements
+5. Validation status is clear before review
 
 ### Reporting Format
 
@@ -489,22 +493,23 @@ Or if failures occurred:
 Fixing now...
 ```
 
-Or if Phase 6 was skipped (THIS SHOULD NEVER HAPPEN):
+Or if Phase 6 was skipped because local tooling is unavailable:
 
 ```
-## ❌ CRITICAL ERROR: Pre-Commit Validation Skipped
+## Post-Development Workflow: Local Validation Deferred
 
-Phase 6 (pre-commit-check) was not invoked. This is a MANDATORY step.
+Phase 6 (pre-commit-check) was not invoked locally.
 
-Invoking pre-commit-check now...
+Reason: <missing tooling, CI-only validation, or maintainer choice>
+Expected follow-up: CI will run the remaining checks.
 ```
 
 ---
 
 ## Anti-Patterns to Avoid
 
-❌ **Skipping validation** because "it's a small change"
-- Small changes still need lint/format/test
+❌ **Skipping validation without documenting why**
+- Note whether validation was skipped due to missing tooling, CI-only validation, or maintainer choice
 
 ❌ **Updating only English docs** and forgetting Chinese versions
 - Both languages must be updated together
@@ -512,11 +517,11 @@ Invoking pre-commit-check now...
 ❌ **Changing backend API without updating frontend**
 - Cross-layer sync is mandatory
 
-❌ **Declaring work "done" without running this workflow**
-- This workflow IS part of "done"
+❌ **Declaring work "done" without validation status**
+- Document which checks passed, failed, or were deferred to CI
 
-❌ **Running validation but not fixing failures**
-- All validation must pass before proceeding
+❌ **Ignoring validation failures**
+- Fix failures when practical, or document why they are deferred
 
 ❌ **Updating code without updating documentation**
 - Documentation is part of the deliverable

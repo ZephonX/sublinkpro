@@ -47,7 +47,7 @@ import { withAlpha } from 'utils/colorUtils';
 import { formatDateTime } from 'i18n/locales';
 import { getNodeCheckStrategyChipSx, getNodeCheckStrategyThemeTokens } from '../nodeCheckTheme';
 
-import { buildNodeCheckProfilePayload, formatUnlockProvidersSummary, setUnlockMeta } from '../utils';
+import { buildNodeCheckProfilePayload, formatNodeCheckChainFilterSummary, formatUnlockProvidersSummary, setUnlockMeta } from '../utils';
 
 /**
  * 节点检测策略管理抽屉
@@ -324,6 +324,13 @@ export default function NodeCheckProfilesDrawer({ open, onClose, groupOptions, t
                               sx={getNodeCheckStrategyChipSx(themeTokens, 'info')}
                             />
                           )}
+                          {profile.chainFilterEnabled && (
+                            <Chip
+                              label={t('nodes.nodeCheckProfiles.detect.chainFilter')}
+                              size="small"
+                              sx={getNodeCheckStrategyChipSx(themeTokens, 'warning')}
+                            />
+                          )}
                         </Box>
                       }
                       secondary={
@@ -367,6 +374,11 @@ export default function NodeCheckProfilesDrawer({ open, onClose, groupOptions, t
                               {t('nodes.nodeCheckProfiles.unlockProviders', {
                                 providers: formatUnlockProvidersSummary(profile.unlockProviders, 2)
                               })}
+                            </Typography>
+                          )}
+                          {profile.chainFilterEnabled && (
+                            <Typography variant="caption" color="text.secondary">
+                              {formatNodeCheckChainFilterSummary(profile)}
                             </Typography>
                           )}
                         </Stack>

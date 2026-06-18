@@ -25,6 +25,19 @@ func GetNodeCheckMeta(c *gin.Context) {
 	})
 }
 
+func normalizeNodeCheckChainFilter(latencyMax int, speedMin, speedMax float64) (int, float64, float64, bool) {
+	if latencyMax < 0 {
+		latencyMax = 0
+	}
+	if speedMin < 0 {
+		speedMin = 0
+	}
+	if speedMax < 0 {
+		speedMax = 0
+	}
+	return latencyMax, speedMin, speedMax, speedMax > 0 && speedMin > speedMax
+}
+
 // ListNodeCheckProfiles 获取节点检测策略列表
 // GET /api/v1/node-check/profiles
 func ListNodeCheckProfiles(c *gin.Context) {
@@ -83,6 +96,10 @@ func CreateNodeCheckProfile(c *gin.Context) {
 		QualityCheckURL     string   `json:"qualityCheckUrl"`
 		DetectUnlock        bool     `json:"detectUnlock"`
 		UnlockProviders     []string `json:"unlockProviders"`
+		ChainFilterEnabled  bool     `json:"chainFilterEnabled"`
+		ChainLatencyMax     int      `json:"chainLatencyMax"`
+		ChainSpeedMin       float64  `json:"chainSpeedMin"`
+		ChainSpeedMax       float64  `json:"chainSpeedMax"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -114,6 +131,11 @@ func CreateNodeCheckProfile(c *gin.Context) {
 	speedRecordMode := req.SpeedRecordMode
 	if speedRecordMode == "" {
 		speedRecordMode = "average"
+	}
+	chainLatencyMax, chainSpeedMin, chainSpeedMax, invalidChainSpeedRange := normalizeNodeCheckChainFilter(req.ChainLatencyMax, req.ChainSpeedMin, req.ChainSpeedMax)
+	if invalidChainSpeedRange {
+		utils.FailWithMsg(c, "链式过滤速度范围无效")
+		return
 	}
 	peakSampleInterval := req.PeakSampleInterval
 	if peakSampleInterval < 50 || peakSampleInterval > 200 {
@@ -158,6 +180,10 @@ func CreateNodeCheckProfile(c *gin.Context) {
 		DetectQuality:       req.DetectQuality,
 		QualityCheckURL:     req.QualityCheckURL,
 		DetectUnlock:        req.DetectUnlock,
+		ChainFilterEnabled:  req.ChainFilterEnabled,
+		ChainLatencyMax:     chainLatencyMax,
+		ChainSpeedMin:       chainSpeedMin,
+		ChainSpeedMax:       chainSpeedMax,
 	}
 	profile.SetGroups(req.Groups)
 	profile.SetTags(req.Tags)
@@ -214,6 +240,10 @@ func UpdateNodeCheckProfile(c *gin.Context) {
 		QualityCheckURL     string   `json:"qualityCheckUrl"`
 		DetectUnlock        bool     `json:"detectUnlock"`
 		UnlockProviders     []string `json:"unlockProviders"`
+		ChainFilterEnabled  bool     `json:"chainFilterEnabled"`
+		ChainLatencyMax     int      `json:"chainLatencyMax"`
+		ChainSpeedMin       float64  `json:"chainSpeedMin"`
+		ChainSpeedMax       float64  `json:"chainSpeedMax"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -262,6 +292,11 @@ func UpdateNodeCheckProfile(c *gin.Context) {
 	if req.SpeedRecordMode != "" {
 		profile.SpeedRecordMode = req.SpeedRecordMode
 	}
+	chainLatencyMax, chainSpeedMin, chainSpeedMax, invalidChainSpeedRange := normalizeNodeCheckChainFilter(req.ChainLatencyMax, req.ChainSpeedMin, req.ChainSpeedMax)
+	if invalidChainSpeedRange {
+		utils.FailWithMsg(c, "链式过滤速度范围无效")
+		return
+	}
 	if req.PeakSampleInterval >= 50 && req.PeakSampleInterval <= 200 {
 		profile.PeakSampleInterval = req.PeakSampleInterval
 	}
@@ -281,6 +316,10 @@ func UpdateNodeCheckProfile(c *gin.Context) {
 	profile.QualityCheckURL = req.QualityCheckURL
 	profile.DetectUnlock = req.DetectUnlock
 	profile.SetUnlockProviders(models.NormalizeUnlockProviders(req.UnlockProviders))
+	profile.ChainFilterEnabled = req.ChainFilterEnabled
+	profile.ChainLatencyMax = chainLatencyMax
+	profile.ChainSpeedMin = chainSpeedMin
+	profile.ChainSpeedMax = chainSpeedMax
 
 	if err := profile.Update(); err != nil {
 		utils.FailWithMsg(c, "更新策略失败")

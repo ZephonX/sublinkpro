@@ -112,7 +112,6 @@
       "hosts": "Host 管理",
       "countryRules": "国家规则",
       "webhooks": "Webhook 管理",
-      "monitor": "系统监控",
       "userCenter": "个人中心",
       "appSettings": "应用设置"
     }
@@ -572,7 +571,6 @@
       "telegram": "Telegram 机器人",
       "nodeDedup": "节点去重",
       "globalNodeProcessing": "全局节点处理",
-      "aiAssistant": "AI 助手",
       "subStore": "Sub-Store",
       "dataMigration": "数据迁移",
       "countryRules": "国家规则"
@@ -604,7 +602,6 @@
         "title": "支持的命令",
         "start": "开始使用",
         "stats": "查看仪表盘统计",
-        "monitor": "查看系统监控",
         "speedtest": "开始节点测速",
         "subscriptions": "管理订阅",
         "nodes": "查看节点信息",
@@ -620,65 +617,6 @@
         "testFailed": "测试失败: {{message}}",
         "reconnectSuccess": "重连成功",
         "reconnectFailed": "重连失败: {{message}}"
-      }
-    },
-    "aiAssistantPanel": {
-      "title": "AI 助手设置",
-      "subheader": "配置模板编辑器使用的系统级 AI 助手。",
-      "alerts": {
-        "systemConfig": "模板编辑器中的 AI 助手会使用这里的系统级配置。当前仅支持提供“/responses endpoint”的 AI 服务。"
-      },
-      "enableTitle": "启用系统 AI 助手",
-      "providerType": "当前接口类型：Responses API（仅支持 `/responses` endpoint）。",
-      "status": {
-        "configured": "已保存连接参数",
-        "notConfigured": "尚未完成配置",
-        "savedApiKey": "已保存 API Key：{{key}}",
-        "noApiKey": "未保存 API Key",
-        "hidden": "已隐藏"
-      },
-      "fields": {
-        "baseUrlHelper": "需为可用的 Responses API 根地址，并且服务端必须支持 `/responses` endpoint。",
-        "replaceApiKey": "替换 API Key（留空则保留已保存密钥）",
-        "model": "模型",
-        "modelHelperFetched": "可从已获取模型中选择，也可手动输入。",
-        "modelHelper": "可手动输入，或先填写 Base URL / API Key 后获取模型列表。",
-        "maxTokensHelper": "填 0 使用服务端默认值（400000）。",
-        "extraHeaders": "额外请求头（JSON）",
-        "extraHeadersHelper": "例如：{\"HTTP-Referer\":\"https://example.com\"}"
-      },
-      "actions": {
-        "fetchModels": "获取模型",
-        "fetchModelsHelper": "使用当前 Base URL / API Key 拉取可选模型。",
-        "test": "测试连接",
-        "save": "保存 AI 设置"
-      },
-      "testResult": {
-        "title": "连接测试结果",
-        "testing": "正在连接 AI 服务并发送测试请求...",
-        "success": "连接测试成功，AI 服务已返回响应。",
-        "response": "AI 返回内容",
-        "latency": "延迟",
-        "finishReason": "完成原因",
-        "usage": "用量信息",
-        "empty": "点击“测试连接”后，结果会显示在这里，不会打断当前表单操作。"
-      },
-      "messages": {
-        "loadFailed": "获取 AI 设置失败: {{message}}",
-        "extraHeadersExample": "额外请求头必须为 JSON 对象，例如 {\"HTTP-Referer\":\"https://example.com\"}",
-        "extraHeadersObject": "额外请求头必须为 JSON 对象",
-        "baseUrlRequired": "请先填写 AI Base URL",
-        "apiKeyRequired": "请先填写 API Key",
-        "modelsLoaded": "模型列表获取成功",
-        "noModels": "未发现可用模型，请手动填写模型名称",
-        "modelsFailed": "获取模型列表失败: {{message}}",
-        "enabledBaseUrlRequired": "启用 AI 助手时必须填写 AI Base URL",
-        "enabledModelRequired": "启用 AI 助手时必须填写模型名称",
-        "enabledApiKeyRequired": "启用 AI 助手时必须提供 API Key",
-        "testSuccess": "AI 连接测试成功",
-        "testFailed": "连接测试失败: {{message}}",
-        "saveSuccess": "AI 助手设置保存成功",
-        "saveFailed": "保存 AI 设置失败: {{message}}"
       }
     },
     "profilePanel": {
@@ -983,60 +921,6 @@
         }
       }
     },
-    "cloudflareTunnel": {
-      "subheader": "通过本机 cloudflared 将当前 SublinkPro 实例连接到 Cloudflare Zero Trust Tunnel。",
-      "alerts": {
-        "setup": "请先在 Cloudflare Zero Trust 中创建 remotely-managed Tunnel，然后粘贴安装命令中的 token。系统会调用已安装的 cloudflared，并在内部安全传递 token，避免在进程参数中直接暴露 token。",
-        "notInstalledPrefix": "当前运行环境未检测到 cloudflared。Docker 官方镜像会内置 cloudflared；非 Docker 部署需要先安装 cloudflared 并确保命令在 PATH 中可用。",
-        "installGuide": "查看本项目安装指南",
-        "sentenceEnd": "。"
-      },
-      "status": {
-        "title": "运行状态",
-        "installed": "已安装 cloudflared",
-        "notInstalled": "未安装 cloudflared",
-        "running": "运行中",
-        "stopped": "未运行",
-        "autoEnabled": "已启用自动启动",
-        "autoDisabled": "未启用自动启动",
-        "tokenSaved": "已保存 token：{{token}}",
-        "tokenMissing": "未保存 token",
-        "command": "启动命令：{{command}}",
-        "path": "cloudflared 路径：{{path}}",
-        "version": "cloudflared 版本：{{version}}",
-        "lastMessage": "最近消息：{{message}}",
-        "lastError": "运行日志：{{message}}"
-      },
-      "form": {
-        "autoConnect": "随服务启动自动连接 Tunnel",
-        "noAutoConnect": "不自动连接 Tunnel",
-        "tokenPlaceholderSaved": "留空则继续使用已保存 token",
-        "tokenPlaceholderNew": "粘贴 cloudflared service install 命令中的 token",
-        "tokenHelperPrefix": "保存或启动时会加密存储 token。Token 来自 Cloudflare Zero Trust 的 Tunnel 安装命令最后一段；可参考",
-        "tokenGuide": "获取 token 指引"
-      },
-      "actions": {
-        "refreshStatus": "刷新状态",
-        "save": "保存配置",
-        "saving": "保存中...",
-        "start": "启动 cloudflared",
-        "starting": "启动中...",
-        "stop": "停止 cloudflared",
-        "stopping": "停止中...",
-        "removeToken": "清除 token"
-      },
-      "messages": {
-        "loadFailed": "获取 Cloudflare Tunnel 状态失败: {{message}}",
-        "saved": "Cloudflare Tunnel 配置已保存",
-        "saveFailed": "保存失败: {{message}}",
-        "started": "cloudflared 已启动",
-        "startFailed": "启动失败: {{message}}",
-        "stopped": "cloudflared 已停止",
-        "stopFailed": "停止失败: {{message}}",
-        "tokenRemoved": "Cloudflare Tunnel token 已清除",
-        "removeFailed": "清除失败: {{message}}"
-      }
-    },
     "subStore": {
       "subheader": "管理用于扩展订阅输出格式的外部 Sub-Store sidecar。",
       "alerts": {
@@ -1303,20 +1187,6 @@
         "broadcast": "广播IP",
         "others": "其他数量",
         "othersDesc": "非完整结果，未纳入细分 IP 判断"
-      },
-      "releases": {
-        "title": "更新日志",
-        "refresh": "刷新",
-        "viewGithub": "在 GitHub 查看",
-        "noDescription": "暂无更新说明",
-        "noReleases": "暂无更新日志",
-        "networkError": "请检查网络连接或稍后重试"
-      },
-      "star": {
-        "like": "喜欢这个项目吗？",
-        "desc": "如果觉得不错，请给我们一个 Star 支持一下！如果你是L站佬友，也可以使用LDC支持本项目！你的支持是我们前进的动力。",
-        "feedback": "问题反馈",
-        "starCount": "Star {{count}}"
       },
       "qualityStatus": {
         "success": "完整结果",
@@ -1705,7 +1575,14 @@
       "detect": {
         "country": "国家",
         "quality": "质量",
-        "unlock": "解锁{{suffix}}"
+        "unlock": "解锁{{suffix}}",
+        "chainFilter": "链式过滤"
+      },
+      "chainFilter": {
+        "latencyMax": "延迟 ≤ {{value}}ms",
+        "speedMin": "速度 ≥ {{value}}MB/s",
+        "speedMax": "速度 ≤ {{value}}MB/s",
+        "successOnly": "仅通过前置阶段"
       },
       "schedule": {
         "enabled": "定时已启用",
@@ -1776,6 +1653,13 @@
         "unlockProviderHelper": "支持连续勾选，无需每次重新打开下拉框",
         "preserveSpeedResult": "保留速度测试结果",
         "preserveSpeedResultHint": "(延迟测试不覆盖上次速度结果)",
+        "chainFilterEnabled": "启用链式过滤",
+        "chainFilterHint": "后续检测只会处理前置阶段成功且满足阈值的节点。延迟+速度模式下先用延迟过滤速度；启用解锁后再用最近一个前置阶段过滤解锁。",
+        "chainLatencyMax": "延迟上限",
+        "chainLatencyMaxHelper": "0 表示不限制延迟数值，但仍要求延迟阶段成功",
+        "chainSpeedMin": "速度下限",
+        "chainSpeedMax": "速度上限",
+        "chainSpeedRangeHelper": "0 表示不限",
         "performanceTitle": "性能参数",
         "includeHandshake": "延迟包含握手时间",
         "handshake": {
@@ -2915,13 +2799,11 @@
       "usageFailed": "获取模板使用情况失败",
       "deleteSuccess": "删除成功",
       "deleteFailed": "删除失败",
-      "promptRequired": "请输入 AI 指令",
       "convertSuccess": "规则生成/转换成功",
       "convertExpandSuccess": "规则生成/转换并展开成功",
       "convertFailed": "规则生成/转换失败",
       "convertError": "生成/转换过程中发生错误",
       "converting": "正在转换规则...",
-      "diffSaveBlocked": "当前处于 AI 对比模式，请先返回编辑模式后再保存",
       "updateSuccess": "更新成功",
       "updateFailed": "更新失败",
       "addSuccess": "添加成功",
@@ -2930,66 +2812,6 @@
       "baseTemplateSaveSuccess": "{{category}} 基础模板保存成功",
       "baseTemplateSaveFailed": "保存基础模板失败",
       "cleared": "已清空内容"
-    },
-    "ai": {
-      "setupGuidance": "请前往 /settings 的 AI 助手页签启用并完成配置。",
-      "setupUnavailable": "AI 助手当前不可用。",
-      "promptPlaceholder": "告诉 AI 要如何调整当前模板…",
-      "promptAria": "AI 指令",
-      "generate": "生成",
-      "generating": "生成中",
-      "goSettings": "前往设置",
-      "goSettingsShort": "去设置",
-      "disabled": "AI 助手未启用",
-      "mode": {
-        "edit": "编辑",
-        "diff": "对比"
-      },
-      "usage": {
-        "input": "输入",
-        "output": "输出",
-        "cache": "缓存"
-      },
-      "status": {
-        "generating": "正在基于当前编辑器内容生成草稿。",
-        "outdated": "当前内容或配置已变化，请重新生成新的草稿。",
-        "unsavedTemplate": "当前模板尚未保存，可先应用到编辑器后再保存。",
-        "diffReadonly": "对比模式为只读，保存前请先返回编辑模式。",
-        "applied": "当前编辑器已载入 AI 草稿。",
-        "revertAvailable": "已保留应用前快照，可在编辑模式下回退。",
-        "ready": "可对比、应用或继续编辑当前候选草稿。",
-        "prompt": "输入指令后生成候选草稿。"
-      },
-      "statusChip": {
-        "generating": "生成中",
-        "failed": "生成失败",
-        "outdated": "草稿过期",
-        "applied": "已写入编辑器",
-        "ready": "草稿可用",
-        "notGenerated": "未生成",
-        "canRevert": "可回退上次接受",
-        "unsavedTemplate": "未保存模板"
-      },
-      "messages": {
-        "promptRequired": "请输入 AI 指令",
-        "generated": "AI 草稿已生成，可切换并停留在并排对比模式",
-        "emptyCandidate": "AI 生成完成，但未返回候选内容",
-        "generateFailed": "AI 生成失败",
-        "setupUnavailable": "AI 助手当前不可用，请前往 /settings 的 AI 助手页签完成配置。",
-        "generateFirst": "请先生成 AI 候选内容",
-        "alreadyApplied": "当前编辑器内容已经与 AI 候选结果一致",
-        "outdatedAccept": "模板内容或配置已变化，请重新生成或重新校验候选内容后再接受到编辑器",
-        "accepted": "AI 草稿已写入编辑器，可继续编辑或直接保存",
-        "noRevert": "没有可回退的本地接受记录",
-        "reverted": "已恢复最近一次接受 AI 候选前的编辑器内容",
-        "diffSaveBlocked": "当前处于 AI 对比模式，请先返回编辑模式后再保存"
-      },
-      "aria": {
-        "expandCommand": "展开 AI 指令工具条",
-        "collapseCommand": "收起 AI 指令工具条",
-        "collapseDisabledPrompt": "收起 AI 助手启用提示",
-        "viewDisabledPrompt": "查看 AI 助手启用提示"
-      }
     }
   },
   "nodeConditions": {
@@ -3097,12 +2919,6 @@
         "tag": "云服务"
       }
     }
-  },
-  "skill": {
-    "downloadTooltip": "下载 AI 技能包（Skill）",
-    "downloadDialogTitle": "下载 AI 技能包（Skill）",
-    "downloadDialogMessage": "确认要下载 SublinkPro AI 技能包（Skill）吗？该文件包含 Claude Code 的自定义技能配置。",
-    "downloading": "下载中..."
   },
   "donation": {
     "title": "支持项目",
@@ -3525,87 +3341,6 @@
         "duplicateGroup": "{{name}} 重名组",
         "samplePrimary": "香港节点-01",
         "sampleSecondary": "日本节点"
-      }
-    },
-    "systemMonitor": {
-      "title": "系统监控",
-      "hidden": "已隐藏",
-      "env": "环境变量：{{env}}",
-      "unavailable": "暂无系统监控数据",
-      "actions": {
-        "enableAutoRefresh": "启用自动刷新（{{seconds}}秒）",
-        "disableAutoRefresh": "关闭自动刷新"
-      },
-      "uptime": {
-        "days": "{{days}}天 {{hours}}小时 {{minutes}}分",
-        "hours": "{{hours}}小时 {{minutes}}分 {{seconds}}秒",
-        "minutes": "{{minutes}}分 {{seconds}}秒",
-        "seconds": "{{seconds}}秒"
-      },
-      "metrics": {
-        "heapMemory": "堆内存",
-        "heapAllocated": "已分配：{{value}}",
-        "cpuCores": "{{count}} 核",
-        "cgoCalls": "CGO 调用：{{count}}",
-        "uptime": "运行时间",
-        "startedAt": "启动于 {{value}}",
-        "cpu": "CPU",
-        "goroutines": "协程",
-        "gomaxprocs": "GOMAXPROCS: {{count}}"
-      },
-      "runtime": {
-        "title": "运行时内存详情",
-        "heapInUse": "堆使用",
-        "stackInUse": "栈使用",
-        "gcCount": "GC 次数",
-        "gcPause": "GC 暂停",
-        "gcCpu": "GC CPU",
-        "systemMemory": "系统内存",
-        "totalAllocated": "累计分配"
-      },
-      "config": {
-        "title": "运行时配置",
-        "keys": {
-          "port": "端口",
-          "expire_days": "登录令牌有效期",
-          "login_fail_count": "登录失败次数限制",
-          "login_fail_window": "登录失败统计窗口",
-          "login_ban_duration": "登录封禁时长",
-          "log_level": "日志级别",
-          "captcha_mode": "验证码模式",
-          "trusted_proxies": "可信代理规则",
-          "feature": "功能开关",
-          "dsn": "数据库连接",
-          "db_path": "本地数据目录",
-          "log_path": "日志目录路径",
-          "geoip_path": "GeoIP 数据库",
-          "web_base_path": "前端访问基础路径",
-          "turnstile_site_key": "Turnstile 站点密钥",
-          "turnstile_proxy_link": "Turnstile 验证代理"
-        },
-        "values": {
-          "plain": "{{count}}",
-          "days": "{{count}} 天",
-          "times": "{{count}} 次",
-          "minutes": "{{count}} 分钟",
-          "unset": "未设置",
-          "literal": "{{value}}",
-          "captchaDisabled": "关闭",
-          "captchaTurnstile": "Cloudflare Turnstile",
-          "captchaTurnstileDegraded": "Cloudflare Turnstile（已降级为传统验证码）",
-          "captchaLegacy": "传统验证码",
-          "disabled": "未启用",
-          "rules": "{{count}} 条规则",
-          "configured": "已配置",
-          "notConfigured": "未配置",
-          "configuredHidden": "已配置（详情已隐藏）",
-          "defaultPath": "默认路径",
-          "customPath": "已自定义",
-          "autoDetect": "自动检测",
-          "rootPath": "根路径",
-          "databaseConfigured": "{{kind}} · 已配置",
-          "databaseHost": "{{kind}} · {{host}} · {{database}}"
-        }
       }
     },
     "geoIpSettings": {

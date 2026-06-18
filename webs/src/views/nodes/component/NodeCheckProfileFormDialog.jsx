@@ -251,6 +251,9 @@ export default function NodeCheckProfileFormDialog({ open, onClose, profile, gro
 
   const urlOptions = form.mode === 'mihomo' ? SPEED_TEST_MIHOMO_OPTIONS : SPEED_TEST_TCP_OPTIONS;
   const unlockProviderOptions = getUnlockProviderOptions();
+  const chainFilterAvailable = form.mode === 'mihomo' || form.detectUnlock;
+  const chainSpeedRangeInvalid =
+    form.chainFilterEnabled && Number(form.chainSpeedMax) > 0 && Number(form.chainSpeedMin) > Number(form.chainSpeedMax);
 
   return (
     <Dialog
@@ -662,6 +665,103 @@ export default function NodeCheckProfileFormDialog({ open, onClose, profile, gro
                 }
               />
             )}
+
+            {chainFilterAvailable && (
+              <Alert
+                severity="info"
+                variant="outlined"
+                icon={<InfoOutlinedIcon fontSize="small" />}
+                sx={{
+                  ...getAlertSx(palette.info.main),
+                  '& .MuiAlert-message': { width: '100%' }
+                }}
+              >
+                <Stack spacing={1.5}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={form.chainFilterEnabled}
+                        onChange={(e) => updateForm('chainFilterEnabled', e.target.checked)}
+                        size="small"
+                      />
+                    }
+                    label={<Typography variant="body2">{t('nodes.nodeCheckProfiles.form.chainFilterEnabled')}</Typography>}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    {t('nodes.nodeCheckProfiles.form.chainFilterHint')}
+                  </Typography>
+                  {form.chainFilterEnabled && (
+                    <Grid container spacing={1.5}>
+                      <Grid item xs={12} sm={form.mode === 'mihomo' && form.detectUnlock ? 4 : 12}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label={t('nodes.nodeCheckProfiles.form.chainLatencyMax')}
+                          type="text"
+                          inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                          value={form.chainLatencyMax || ''}
+                          placeholder="300"
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '' || /^\d+$/.test(val)) {
+                              updateForm('chainLatencyMax', val === '' ? 0 : Number(val));
+                            }
+                          }}
+                          helperText={t('nodes.nodeCheckProfiles.form.chainLatencyMaxHelper')}
+                          InputProps={{
+                            endAdornment: <InputAdornment position="end">{t('nodes.nodeCheckProfiles.form.units.milliseconds')}</InputAdornment>
+                          }}
+                        />
+                      </Grid>
+                      {form.mode === 'mihomo' && form.detectUnlock && (
+                        <>
+                          <Grid item xs={12} sm={4}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label={t('nodes.nodeCheckProfiles.form.chainSpeedMin')}
+                              type="text"
+                              inputProps={{ inputMode: 'decimal' }}
+                              value={form.chainSpeedMin || ''}
+                              placeholder="0"
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                  updateForm('chainSpeedMin', val === '' ? 0 : Number(val));
+                                }
+                              }}
+                              helperText={t('nodes.nodeCheckProfiles.form.chainSpeedRangeHelper')}
+                              error={chainSpeedRangeInvalid}
+                              InputProps={{ endAdornment: <InputAdornment position="end">MB/s</InputAdornment> }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label={t('nodes.nodeCheckProfiles.form.chainSpeedMax')}
+                              type="text"
+                              inputProps={{ inputMode: 'decimal' }}
+                              value={form.chainSpeedMax || ''}
+                              placeholder="0"
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                  updateForm('chainSpeedMax', val === '' ? 0 : Number(val));
+                                }
+                              }}
+                              helperText={t('nodes.nodeCheckProfiles.form.chainSpeedRangeHelper')}
+                              error={chainSpeedRangeInvalid}
+                              InputProps={{ endAdornment: <InputAdornment position="end">MB/s</InputAdornment> }}
+                            />
+                          </Grid>
+                        </>
+                      )}
+                    </Grid>
+                  )}
+                </Stack>
+              </Alert>
+            )}
           </Stack>
         </ConfigSection>
 
@@ -901,7 +1001,7 @@ export default function NodeCheckProfileFormDialog({ open, onClose, profile, gro
         }}
       >
         <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button variant="contained" onClick={handleSubmit} disabled={!form.name.trim() || submitting}>
+        <Button variant="contained" onClick={handleSubmit} disabled={!form.name.trim() || chainSpeedRangeInvalid || submitting}>
           {submitting ? t('common.saving') : t('nodes.nodeCheckProfiles.form.saveSettings')}
         </Button>
       </DialogActions>

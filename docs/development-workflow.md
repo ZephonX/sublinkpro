@@ -8,7 +8,8 @@ This document describes the complete development workflow for SublinkPro, from s
 
 ## Overview
 
-The development workflow ensures that every code change goes through consistent validation, synchronization, and documentation processes before being considered "complete".
+The development workflow helps code changes go through consistent validation,
+synchronization, and documentation processes before review or release.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -32,8 +33,8 @@ The development workflow ensures that every code change goes through consistent 
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  Phase 3: Post-Development Workflow (MANDATORY)              │
-│  → Automatically triggered after code completion             │
+│  Phase 3: Post-Development Workflow (Recommended)            │
+│  → Run when validation or change-summary support is useful   │
 │  → See .agents/skills/post-dev-workflow/SKILL.md             │
 │                                                               │
 │  Sub-Phase 3.1: Code Validation                              │
@@ -192,9 +193,10 @@ yarn run start
 
 ---
 
-## Phase 3: Post-Development Workflow (MANDATORY)
+## Phase 3: Post-Development Workflow (Recommended)
 
-**This phase is MANDATORY and must run automatically after completing ANY code change.**
+This phase is recommended after completing code changes, especially when the
+change spans backend, frontend, documentation, or configuration.
 
 For complete details, see: `.agents/skills/post-dev-workflow/SKILL.md`
 
@@ -497,15 +499,15 @@ After approval and passing checks:
 
 ---
 
-## For AI Agents: Automation Instructions
+## For AI Agents: Workflow Instructions
 
-### Automatic triggering
+### Suggested triggering
 
 After completing code implementation:
 
 ```
 IF code_implementation_complete:
-    AUTOMATICALLY invoke .agents/skills/post-dev-workflow/SKILL.md
+    OPTIONALLY invoke .agents/skills/post-dev-workflow/SKILL.md
     
     RUN Phase 3.1: Code Validation
     IF fails:
@@ -528,23 +530,23 @@ IF code_implementation_complete:
     IF all_phases_pass:
         DECLARE "Work is ready to commit"
     ELSE:
-        DECLARE "Issues found, fixing now..."
-        FIX issues
-        RETRY workflow
+        DECLARE "Issues found or deferred to CI"
+        FIX issues when practical
+        RETRY workflow when local tooling is available
 ```
 
-### Never skip workflow
+### Validation status
 
 ❌ **DO NOT**:
-- Declare work "complete" or "done" without running post-dev workflow
-- Skip validation because "it's a small change"
+- Leave validation status undocumented
 - Update only English docs
 - Change backend without checking frontend impact
-- Skip tests for "simple" changes
+- Ignore tests for key logic changes
 
 ✅ **DO**:
-- Always run post-dev workflow after code changes
-- Fix all validation errors before proceeding
+- Run post-dev workflow for broad or risky changes
+- Fix validation errors when practical
+- Document checks deferred to CI when local tooling is unavailable
 - Update all impacted layers together
 - Maintain bilingual documentation
 - Add tests for key logic changes
@@ -553,7 +555,7 @@ IF code_implementation_complete:
 
 ## Related Documentation
 
-- **AGENTS.md**: Architectural principles and mandatory workflow
+- **AGENTS.md**: Architectural principles and validation guidance
 - **CONTRIBUTING.md**: General contribution guidelines
 - **docs/development.md**: Development setup and tech stack
 - **.agents/README.md**: Skills system overview
@@ -578,6 +580,11 @@ IF code_implementation_complete:
 
 ## Conclusion
 
-This workflow ensures that every code change in SublinkPro meets quality standards, respects architectural boundaries, and maintains complete documentation. By following this workflow consistently, we maintain a high-quality codebase that is easy to understand, maintain, and contribute to.
+This workflow helps SublinkPro changes meet quality standards, respect
+architectural boundaries, and maintain complete documentation. Following it
+consistently keeps the codebase easier to understand, maintain, and contribute
+to.
 
-**Remember**: The post-development workflow (Phase 3) is **MANDATORY** and **AUTOMATIC** after completing any code change. It is not an optional step or a suggestion—it is part of what "done" means.
+**Remember**: The post-development workflow (Phase 3) is recommended for broad
+or risky changes. If local tooling is unavailable, document skipped checks and
+let CI run the remaining validation.

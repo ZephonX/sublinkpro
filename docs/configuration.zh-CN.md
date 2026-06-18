@@ -57,20 +57,6 @@ SublinkPro 可以使用外部 Sub-Store 后端作为可选 sidecar，为订阅�
 
 ---
 
-## Cloudflare Tunnel
-
-用户中心的 **Cloudflare Tunnel** 标签页可以托管本机 `cloudflared` 进程，将当前 SublinkPro 实例连接到 Cloudflare Zero Trust 中的 remotely-managed Tunnel。
-
-- Docker 镜像已内置 `cloudflared`，通常只需要在页面中填写 Tunnel token 并点击启动。
-- 非 Docker 部署需要先安装 `cloudflared`，并确保 `cloudflared` 命令位于 `PATH` 中。
-- 页面不会回显 token 原文，状态接口只返回遮罩后的 token。
-
-运行时等价于执行 `cloudflared tunnel --no-autoupdate run`，token 通过 `TUNNEL_TOKEN` 环境变量传递，避免出现在进程参数中。
-
-完整图文教程见 [Cloudflare Tunnel 远程访问](features/cloudflare-tunnel.zh-CN.md)。
-
----
-
 ## 命令行参数
 
 ```bash
@@ -350,7 +336,7 @@ environment:
 
 ## 反向代理与真实 IP
 
-如果您通过 Nginx、Caddy、宝塔、Docker 反向代理、Cloudflare Tunnel 或其他代理访问 SublinkPro，访问日志里的客户端 IP 取决于服务端是否信任该代理。
+如果您通过 Nginx、Caddy、宝塔、Docker 反向代理或其他代理访问 SublinkPro，访问日志里的客户端 IP 取决于服务端是否信任该代理。
 
 - 默认会信任本机和常见内网网段，因此反代到本机或容器网络时会自动识别真实来源 IP。
 - 如果日志里持续出现 `127.0.0.1`、`172.x.x.x` 这类代理地址，通常说明当前代理出口不在可信列表中。
@@ -390,7 +376,7 @@ trusted_proxies: []
 ```yaml
 services:
   sublinkpro:
-    image: zerodeng/sublink-pro:latest
+    image: ghcr.io/zephonx/sublinkpro:latest
     container_name: sublinkpro
     ports:
       - "8000:8000"

@@ -30,8 +30,6 @@ RUN CGO_ENABLED=0 go build -tags=prod -ldflags="-s -w" -o sublinkPro
 
 # 3. 运行镜像
 FROM alpine:latest
-ARG TARGETARCH
-ARG TARGETVARIANT
 WORKDIR /app
 
 # ============================================
@@ -57,26 +55,10 @@ ENV GIN_MODE=release
 # 管理员配置
 # SUBLINK_ADMIN_PASSWORD      - 初始管理员密码 (仅首次启动时生效)
 # SUBLINK_ADMIN_PASSWORD_REST - 重置管理员密码
-# 安装运行时依赖、cloudflared，并设置时区
+# 安装运行时依赖，并设置时区
 RUN apk add --no-cache tzdata ca-certificates curl && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-    echo "Asia/Shanghai" > /etc/timezone && \
-    arch="${TARGETARCH:-$(uname -m)}" && \
-    variant="${TARGETVARIANT:-}" && \
-    case "$arch" in \
-      amd64|x86_64) cloudflared_arch="amd64" ;; \
-      arm64|aarch64) cloudflared_arch="arm64" ;; \
-      arm) cloudflared_arch="arm" ;; \
-      armv7*|armv6*) cloudflared_arch="arm" ;; \
-      386|i386|i686) cloudflared_arch="386" ;; \
-      *) echo "unsupported cloudflared architecture: $arch" >&2; exit 1 ;; \
-    esac && \
-    if [ "$arch" = "arm" ] && [ -n "$variant" ] && [ "$variant" != "v7" ]; then \
-      echo "unsupported cloudflared ARM variant: $variant" >&2; exit 1; \
-    fi && \
-    curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${cloudflared_arch}" -o /usr/local/bin/cloudflared && \
-    chmod +x /usr/local/bin/cloudflared && \
-    cloudflared version
+    echo "Asia/Shanghai" > /etc/timezone
 RUN mkdir -p /app/db /app/logs /app/template && chmod 777 /app/db /app/logs /app/template
 
 COPY --from=backend-builder /app/sublinkPro /app/sublinkPro

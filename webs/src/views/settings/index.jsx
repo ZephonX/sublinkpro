@@ -16,8 +16,6 @@ import TelegramIcon from '@mui/icons-material/Telegram';
 import TuneIcon from '@mui/icons-material/Tune';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import StorageIcon from '@mui/icons-material/Storage';
-import PsychologyIcon from '@mui/icons-material/Psychology';
-import CloudQueueIcon from '@mui/icons-material/CloudQueue';
 import ExtensionIcon from '@mui/icons-material/Extension';
 
 // project imports
@@ -28,8 +26,6 @@ import TelegramSettings from './components/TelegramSettings';
 import NodeDedupSettings from './components/NodeDedupSettings';
 import GlobalNodeProcessingSettings from './components/GlobalNodeProcessingSettings';
 import DatabaseMigrationSettings from './components/DatabaseMigrationSettings';
-import AIAssistantSettings from './components/AIAssistantSettings';
-import CloudflareTunnelSettings from './components/CloudflareTunnelSettings';
 import SubStoreSettings from './components/SubStoreSettings';
 
 // ==============================|| Tab Panel ||============================== //
@@ -58,11 +54,9 @@ export default function UserSettings() {
   const [tabValue, setTabValue] = useState(() => {
     // 只在首次加载时读取 URL 参数
     const tab = searchParams.get('tab');
-    if (tab === 'ai') return 5;
     if (tab === 'globalNodeProcessing') return 4;
     // 或者从 location.state 读取
     if (location.state?.targetTab === 'globalNodeProcessing') return 4;
-    if (location.state?.targetTab === 'ai') return 5;
     return 0;
   });
   const [loading, setLoading] = useState(false);
@@ -96,8 +90,6 @@ export default function UserSettings() {
       t('settings.tabs.telegram'),
       t('settings.tabs.nodeDedup'),
       t('settings.tabs.globalNodeProcessing'),
-      t('settings.tabs.aiAssistant'),
-      'Cloudflare Tunnel',
       t('settings.tabs.subStore'),
       t('settings.tabs.dataMigration')
     ];
@@ -143,10 +135,8 @@ export default function UserSettings() {
             label={t('settings.tabs.globalNodeProcessing')}
             {...a11yProps(4)}
           />
-          <Tab icon={<PsychologyIcon sx={{ mr: 1 }} />} iconPosition="start" label={t('settings.tabs.aiAssistant')} {...a11yProps(5)} />
-          <Tab icon={<CloudQueueIcon sx={{ mr: 1 }} />} iconPosition="start" label="Cloudflare Tunnel" {...a11yProps(6)} />
-          <Tab icon={<ExtensionIcon sx={{ mr: 1 }} />} iconPosition="start" label={t('settings.tabs.subStore')} {...a11yProps(7)} />
-          <Tab icon={<StorageIcon sx={{ mr: 1 }} />} iconPosition="start" label={t('settings.tabs.dataMigration')} {...a11yProps(8)} />
+          <Tab icon={<ExtensionIcon sx={{ mr: 1 }} />} iconPosition="start" label={t('settings.tabs.subStore')} {...a11yProps(5)} />
+          <Tab icon={<StorageIcon sx={{ mr: 1 }} />} iconPosition="start" label={t('settings.tabs.dataMigration')} {...a11yProps(6)} />
         </Tabs>
       </Box>
 
@@ -171,18 +161,10 @@ export default function UserSettings() {
       </TabPanel>
 
       <TabPanel value={tabValue} index={5}>
-        <AIAssistantSettings showMessage={showMessage} loading={loading} setLoading={setLoading} />
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={6}>
-        <CloudflareTunnelSettings showMessage={showMessage} />
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={7}>
         <SubStoreSettings showMessage={showMessage} />
       </TabPanel>
 
-      <TabPanel value={tabValue} index={8}>
+      <TabPanel value={tabValue} index={6}>
         <DatabaseMigrationSettings showMessage={showMessage} />
       </TabPanel>
 

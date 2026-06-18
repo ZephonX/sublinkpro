@@ -57,20 +57,6 @@ Keep the Sub-Store service on a private network or loopback address. SublinkPro 
 
 ---
 
-## Cloudflare Tunnel
-
-The **Cloudflare Tunnel** tab in Application Settings can host the local `cloudflared` process and connect the current SublinkPro instance to a remotely managed Tunnel in Cloudflare Zero Trust.
-
-- The Docker image includes `cloudflared`, so you usually only need to enter the Tunnel token on the page and start it.
-- Non Docker deployments need `cloudflared` installed first, with the `cloudflared` command available in `PATH`.
-- The page never echoes the raw token. Status APIs only return a masked token.
-
-At runtime this is equivalent to `cloudflared tunnel --no-autoupdate run`. The token is passed through the `TUNNEL_TOKEN` environment variable so it does not appear in process arguments.
-
-See the full guide at [Cloudflare Tunnel remote access](features/cloudflare-tunnel.md).
-
----
-
 ## Command Line Flags
 
 ```bash
@@ -349,7 +335,7 @@ After setting it:
 
 ## Reverse Proxy and Real IP
 
-If you access SublinkPro through Nginx, Caddy, BaoTa, Docker reverse proxy, Cloudflare Tunnel, or another proxy, the client IP in access logs depends on whether the server trusts that proxy.
+If you access SublinkPro through Nginx, Caddy, BaoTa, Docker reverse proxy, or another proxy, the client IP in access logs depends on whether the server trusts that proxy.
 
 - By default, local addresses and common private network ranges are trusted, so reverse proxies on the host or container network usually expose the real source IP automatically.
 - If logs keep showing proxy addresses like `127.0.0.1` or `172.x.x.x`, the proxy egress is usually not in the trusted list.
@@ -389,7 +375,7 @@ trusted_proxies: []
 ```yaml
 services:
   sublinkpro:
-    image: zerodeng/sublink-pro:latest
+    image: ghcr.io/zephonx/sublinkpro:latest
     container_name: sublinkpro
     ports:
       - "8000:8000"

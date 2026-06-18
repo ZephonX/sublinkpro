@@ -41,6 +41,29 @@ func applyNodeQualityInfo(node *models.Node, quality *mihomo.QualityCheckResult)
 	node.FraudScore = -1
 }
 
+func chainAllowsAfterLatency(latency int, err error, config *SpeedTestConfig) bool {
+	if config == nil || !config.ChainFilterEnabled {
+		return true
+	}
+	if err != nil || latency < 0 {
+		return false
+	}
+	return config.ChainLatencyMax <= 0 || latency <= config.ChainLatencyMax
+}
+
+func chainAllowsAfterSpeed(speed float64, err error, config *SpeedTestConfig) bool {
+	if config == nil || !config.ChainFilterEnabled {
+		return true
+	}
+	if err != nil || speed <= 0 {
+		return false
+	}
+	if config.ChainSpeedMin > 0 && speed < config.ChainSpeedMin {
+		return false
+	}
+	return config.ChainSpeedMax <= 0 || speed <= config.ChainSpeedMax
+}
+
 // RunSpeedTestWithConfig 使用指定配置执行节点测速（并发安全）
 // 每个任务使用独立的配置实例，完全避免配置覆盖问题
 // 采用两阶段测试策略：阶段一并发测延迟，阶段二低并发测速度
@@ -103,6 +126,7 @@ func RunSpeedTestWithConfig(nodes []models.Node, trigger models.TaskTrigger, pro
 	}
 	detectUnlock := config.DetectUnlock
 	unlockProviders := models.NormalizeUnlockProviders(config.UnlockProviders)
+	chainFilterEnabled := config.ChainFilterEnabled
 
 	// 流量统计开关
 	trafficByGroup := config.TrafficByGroup
@@ -166,6 +190,7 @@ func RunSpeedTestWithConfig(nodes []models.Node, trigger models.TaskTrigger, pro
 
 	// 结果统计
 	var successCount, failCount int32
+	var chainLatencyFilteredCount, chainSpeedFilteredCount int32
 	var completedCount int32
 	var cancelled bool
 	var mu sync.Mutex
@@ -355,10 +380,18 @@ func RunSpeedTestWithConfig(nodes []models.Node, trigger models.TaskTrigger, pro
 				}
 
 				if detectUnlock {
+					if !chainAllowsAfterLatency(latency, err, config) {
+						if chainFilterEnabled {
+							atomic.AddInt32(&chainLatencyFilteredCount, 1)
+							n.UnlockSummary = ""
+							n.UnlockCheckAt = ""
+						}
+					} else {
 					unlockSummary := unlock.CheckUnlock(n.Link, speedTestTimeout, n.LinkCountry, unlockProviders)
 					nodeResults[idx].unlock = unlockSummary
 					n.UnlockSummary = models.BuildUnlockSummaryJSON(unlockSummary)
 					n.UnlockCheckAt = unlockSummary.UpdatedAt
+					}
 				}
 
 				n.LatencyCheckAt = time.Now().Format("2006-01-02 15:04:05")
@@ -488,6 +521,51 @@ func RunSpeedTestWithConfig(nodes []models.Node, trigger models.TaskTrigger, pro
 					QualityFamily:  nr.node.QualityFamily,
 					UnlockSummary:  nr.node.UnlockSummary,
 					UnlockCheckAt:  nr.node.UnlockCheckAt,
+				})
+				mu.Unlock()
+				continue
+			}
+
+			if !chainAllowsAfterLatency(nr.latency, nr.err, config) {
+				mu.Lock()
+				atomic.AddInt32(&chainLatencyFilteredCount, 1)
+				currentCompleted := int(atomic.AddInt32(&completedCount, 1))
+				if detectQuality {
+					resetNodeQualityInfo(&nr.node)
+				}
+				nr.node.Speed = 0
+				nr.node.SpeedStatus = constants.StatusUntested
+				nr.node.DelayTime = nr.latency
+				nr.node.DelayStatus = constants.StatusSuccess
+				nr.node.LatencyCheckAt = time.Now().Format("2006-01-02 15:04:05")
+				if detectUnlock {
+					nr.node.UnlockSummary = ""
+					nr.node.UnlockCheckAt = ""
+				}
+				speedTestResults = append(speedTestResults, models.SpeedTestResult{
+					NodeID:         nr.node.ID,
+					Speed:          nr.node.Speed,
+					SpeedStatus:    nr.node.SpeedStatus,
+					DelayTime:      nr.node.DelayTime,
+					DelayStatus:    nr.node.DelayStatus,
+					LatencyCheckAt: nr.node.LatencyCheckAt,
+					SpeedCheckAt:   "",
+					LinkCountry:    nr.node.LinkCountry,
+					LandingIP:      nr.node.LandingIP,
+					IsBroadcast:    nr.node.IsBroadcast,
+					IsResidential:  nr.node.IsResidential,
+					FraudScore:     nr.node.FraudScore,
+					QualityStatus:  nr.node.QualityStatus,
+					QualityFamily:  nr.node.QualityFamily,
+					UnlockSummary:  nr.node.UnlockSummary,
+					UnlockCheckAt:  nr.node.UnlockCheckAt,
+				})
+				currentItemDisplay := formatNodeDisplayItem(nr.node.Name, nr.node.Group, nr.node.Source)
+				_ = tm.UpdateProgress(taskID, totalNodes+currentCompleted, currentItemDisplay, map[string]any{
+					"status":  "filtered",
+					"phase":   "speed",
+					"latency": nr.latency,
+					"reason":  "chain_latency_filter",
 				})
 				mu.Unlock()
 				continue
@@ -653,11 +731,21 @@ func RunSpeedTestWithConfig(nodes []models.Node, trigger models.TaskTrigger, pro
 				}
 
 				if detectUnlock {
+					if !chainAllowsAfterSpeed(result.node.Speed, err, config) {
+						if chainFilterEnabled {
+							atomic.AddInt32(&chainSpeedFilteredCount, 1)
+							result.node.UnlockSummary = ""
+							result.node.UnlockCheckAt = ""
+							resultData["unlockFiltered"] = true
+							resultData["unlockFilterReason"] = "chain_speed_filter"
+						}
+					} else {
 					unlockSummary := unlock.CheckUnlock(result.node.Link, speedTestTimeout, result.node.LinkCountry, unlockProviders)
 					result.unlock = unlockSummary
 					result.node.UnlockSummary = models.BuildUnlockSummaryJSON(unlockSummary)
 					result.node.UnlockCheckAt = unlockSummary.UpdatedAt
 					resultData["unlock"] = unlockSummary
+					}
 				}
 
 				result.node.LatencyCheckAt = time.Now().Format("2006-01-02 15:04:05")
@@ -793,6 +881,18 @@ func RunSpeedTestWithConfig(nodes []models.Node, trigger models.TaskTrigger, pro
 			"total":   totalNodes,
 			"traffic": trafficData,
 		}
+		chainLatencyFiltered := atomic.LoadInt32(&chainLatencyFilteredCount)
+		chainSpeedFiltered := atomic.LoadInt32(&chainSpeedFilteredCount)
+		if chainFilterEnabled {
+			resultData["chainFilter"] = map[string]any{
+				"enabled":         true,
+				"latencyMax":      config.ChainLatencyMax,
+				"speedMin":        config.ChainSpeedMin,
+				"speedMax":        config.ChainSpeedMax,
+				"latencyFiltered": chainLatencyFiltered,
+				"speedFiltered":   chainSpeedFiltered,
+			}
+		}
 		if detectUnlock {
 			unlockSummaries := make([]models.UnlockSummary, 0, len(speedTestResults))
 			for _, item := range speedTestResults {
@@ -806,8 +906,12 @@ func RunSpeedTestWithConfig(nodes []models.Node, trigger models.TaskTrigger, pro
 			resultData["unlockProviders"] = unlockProviders
 			resultData["unlock"] = models.BuildUnlockAggregate(unlockSummaries, unlockProviders)
 		}
-		utils.Info("测速任务完成 - 总计: %d, 成功: %d, 失败: %d, 流量: %s", totalNodes, successCount, failCount, formatBytes(trafficTotal))
-		_ = tm.CompleteTask(taskID, fmt.Sprintf("测速完成 (成功: %d, 失败: %d, 流量: %s)", successCount, failCount, formatBytes(trafficTotal)), resultData)
+		filterSummary := ""
+		if chainFilterEnabled && (chainLatencyFiltered > 0 || chainSpeedFiltered > 0) {
+			filterSummary = fmt.Sprintf(", 过滤: %d", chainLatencyFiltered+chainSpeedFiltered)
+		}
+		utils.Info("测速任务完成 - 总计: %d, 成功: %d, 失败: %d%s, 流量: %s", totalNodes, successCount, failCount, filterSummary, formatBytes(trafficTotal))
+		_ = tm.CompleteTask(taskID, fmt.Sprintf("测速完成 (成功: %d, 失败: %d%s, 流量: %s)", successCount, failCount, filterSummary, formatBytes(trafficTotal)), resultData)
 
 		// 广播测速完成通知（让用户在通知中心看到）
 		notifications.Publish("task.speed_test_completed", notifications.Payload{
@@ -819,6 +923,7 @@ func RunSpeedTestWithConfig(nodes []models.Node, trigger models.TaskTrigger, pro
 				"success_count":    successCount,
 				"fail":             failCount,
 				"fail_count":       failCount,
+				"filtered":         chainLatencyFiltered + chainSpeedFiltered,
 				"total":            totalNodes,
 				"traffic":          formatBytes(trafficTotal),
 				"total_traffic_mb": float64(trafficTotal) / 1024 / 1024,

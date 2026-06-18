@@ -112,7 +112,6 @@
       "hosts": "Host",
       "countryRules": "Country Rules",
       "webhooks": "Webhooks",
-      "monitor": "Monitor",
       "userCenter": "User Center",
       "appSettings": "Settings"
     }
@@ -572,7 +571,6 @@
       "telegram": "Telegram bot",
       "nodeDedup": "Node deduplication",
       "globalNodeProcessing": "Global node processing",
-      "aiAssistant": "AI Assistant",
       "subStore": "Sub-Store",
       "dataMigration": "Data migration",
       "countryRules": "Country Rules"
@@ -604,7 +602,6 @@
         "title": "Supported Commands",
         "start": "Start using",
         "stats": "View dashboard stats",
-        "monitor": "View system monitor",
         "speedtest": "Start node speed test",
         "subscriptions": "Manage subscriptions",
         "nodes": "View node information",
@@ -620,65 +617,6 @@
         "testFailed": "Test failed: {{message}}",
         "reconnectSuccess": "Reconnected successfully",
         "reconnectFailed": "Reconnect failed: {{message}}"
-      }
-    },
-    "aiAssistantPanel": {
-      "title": "AI Assistant Settings",
-      "subheader": "Configure the system AI assistant used by the template editor.",
-      "alerts": {
-        "systemConfig": "The template editor's AI assistant uses this system-level configuration. Currently only AI services that provide a /responses endpoint are supported."
-      },
-      "enableTitle": "Enable system AI assistant",
-      "providerType": "Current interface type: Responses API (only `/responses` endpoint is supported).",
-      "status": {
-        "configured": "Connection parameters saved",
-        "notConfigured": "Configuration incomplete",
-        "savedApiKey": "Saved API Key: {{key}}",
-        "noApiKey": "No API Key saved",
-        "hidden": "Hidden"
-      },
-      "fields": {
-        "baseUrlHelper": "Must be a usable Responses API base URL, and the server must support the `/responses` endpoint.",
-        "replaceApiKey": "Replace API Key (leave blank to keep the saved key)",
-        "model": "Model",
-        "modelHelperFetched": "Choose from fetched models or enter one manually.",
-        "modelHelper": "Enter manually, or fill Base URL / API Key first and fetch the model list.",
-        "maxTokensHelper": "Use 0 for the server default (400000).",
-        "extraHeaders": "Extra headers (JSON)",
-        "extraHeadersHelper": "Example: {\"HTTP-Referer\":\"https://example.com\"}"
-      },
-      "actions": {
-        "fetchModels": "Fetch models",
-        "fetchModelsHelper": "Fetch available models using the current Base URL / API Key.",
-        "test": "Test connection",
-        "save": "Save AI settings"
-      },
-      "testResult": {
-        "title": "Connection Test Result",
-        "testing": "Connecting to the AI service and sending a test request...",
-        "success": "Connection test succeeded. The AI service returned a response.",
-        "response": "AI response",
-        "latency": "Latency",
-        "finishReason": "Finish reason",
-        "usage": "Usage information",
-        "empty": "After clicking Test connection, results will appear here without interrupting the form."
-      },
-      "messages": {
-        "loadFailed": "Failed to load AI settings: {{message}}",
-        "extraHeadersExample": "Extra headers must be a JSON object, for example {\"HTTP-Referer\":\"https://example.com\"}",
-        "extraHeadersObject": "Extra headers must be a JSON object",
-        "baseUrlRequired": "Fill AI Base URL first",
-        "apiKeyRequired": "Fill API Key first",
-        "modelsLoaded": "Model list fetched successfully",
-        "noModels": "No available models found. Enter a model name manually.",
-        "modelsFailed": "Failed to fetch model list: {{message}}",
-        "enabledBaseUrlRequired": "AI Base URL is required when enabling the AI assistant",
-        "enabledModelRequired": "Model name is required when enabling the AI assistant",
-        "enabledApiKeyRequired": "API Key is required when enabling the AI assistant",
-        "testSuccess": "AI connection test succeeded",
-        "testFailed": "Connection test failed: {{message}}",
-        "saveSuccess": "AI assistant settings saved",
-        "saveFailed": "Failed to save AI settings: {{message}}"
       }
     },
     "profilePanel": {
@@ -983,60 +921,6 @@
         }
       }
     },
-    "cloudflareTunnel": {
-      "subheader": "Connect the current SublinkPro instance to Cloudflare Zero Trust Tunnel through local cloudflared.",
-      "alerts": {
-        "setup": "Create a remotely-managed Tunnel in Cloudflare Zero Trust first, then paste the token from the install command. The system calls the installed cloudflared and passes the token internally so it is not exposed in process arguments.",
-        "notInstalledPrefix": "cloudflared was not detected in the current runtime. The official Docker image includes cloudflared; non-Docker deployments must install cloudflared first and make sure the command is available on PATH.",
-        "installGuide": "View this project's installation guide",
-        "sentenceEnd": "."
-      },
-      "status": {
-        "title": "Runtime status",
-        "installed": "cloudflared installed",
-        "notInstalled": "cloudflared not installed",
-        "running": "Running",
-        "stopped": "Not running",
-        "autoEnabled": "Auto-start enabled",
-        "autoDisabled": "Auto-start disabled",
-        "tokenSaved": "Saved token: {{token}}",
-        "tokenMissing": "No token saved",
-        "command": "Start command: {{command}}",
-        "path": "cloudflared path: {{path}}",
-        "version": "cloudflared version: {{version}}",
-        "lastMessage": "Latest message: {{message}}",
-        "lastError": "Runtime log: {{message}}"
-      },
-      "form": {
-        "autoConnect": "Connect Tunnel automatically when the service starts",
-        "noAutoConnect": "Do not connect Tunnel automatically",
-        "tokenPlaceholderSaved": "Leave blank to keep using the saved token",
-        "tokenPlaceholderNew": "Paste the token from the cloudflared service install command",
-        "tokenHelperPrefix": "The token is encrypted when saved or started. It comes from the last segment of the Cloudflare Zero Trust Tunnel install command; see",
-        "tokenGuide": "token guide"
-      },
-      "actions": {
-        "refreshStatus": "Refresh status",
-        "save": "Save configuration",
-        "saving": "Saving...",
-        "start": "Start cloudflared",
-        "starting": "Starting...",
-        "stop": "Stop cloudflared",
-        "stopping": "Stopping...",
-        "removeToken": "Clear token"
-      },
-      "messages": {
-        "loadFailed": "Failed to load Cloudflare Tunnel status: {{message}}",
-        "saved": "Cloudflare Tunnel configuration saved",
-        "saveFailed": "Save failed: {{message}}",
-        "started": "cloudflared started",
-        "startFailed": "Start failed: {{message}}",
-        "stopped": "cloudflared stopped",
-        "stopFailed": "Stop failed: {{message}}",
-        "tokenRemoved": "Cloudflare Tunnel token cleared",
-        "removeFailed": "Clear failed: {{message}}"
-      }
-    },
     "subStore": {
       "subheader": "Manage the external Sub-Store sidecar used for expanded subscription output formats.",
       "alerts": {
@@ -1303,20 +1187,6 @@
         "broadcast": "Broadcast IP",
         "others": "Other Counts",
         "othersDesc": "Not complete results, excluded from detailed IP checks"
-      },
-      "releases": {
-        "title": "Changelog",
-        "refresh": "Refresh",
-        "viewGithub": "View on GitHub",
-        "noDescription": "No release notes",
-        "noReleases": "No changelog available",
-        "networkError": "Please check your network or try again later"
-      },
-      "star": {
-        "like": "Like this project?",
-        "desc": "If you find it useful, please give us a Star! It's the motivation that keeps us moving forward.",
-        "feedback": "Feedback",
-        "starCount": "Star {{count}}"
       },
       "qualityStatus": {
         "success": "Success",
@@ -1705,7 +1575,14 @@
       "detect": {
         "country": "Country",
         "quality": "Quality",
-        "unlock": "Unlock{{suffix}}"
+        "unlock": "Unlock{{suffix}}",
+        "chainFilter": "Chain filter"
+      },
+      "chainFilter": {
+        "latencyMax": "Delay <= {{value}}ms",
+        "speedMin": "Speed >= {{value}}MB/s",
+        "speedMax": "Speed <= {{value}}MB/s",
+        "successOnly": "Previous stage must pass"
       },
       "schedule": {
         "enabled": "Schedule enabled",
@@ -1776,6 +1653,13 @@
         "unlockProviderHelper": "You can select multiple items continuously without reopening the dropdown each time",
         "preserveSpeedResult": "Preserve speed test result",
         "preserveSpeedResultHint": "(latency checks will not overwrite the last speed result)",
+        "chainFilterEnabled": "Enable chain filter",
+        "chainFilterHint": "Later checks only run on nodes whose previous stage passed and matched the thresholds. In delay + speed mode, delay filters speed first; when unlock is enabled, the latest previous stage filters unlock.",
+        "chainLatencyMax": "Delay max",
+        "chainLatencyMaxHelper": "0 means no latency value limit, but the latency stage must still pass",
+        "chainSpeedMin": "Speed min",
+        "chainSpeedMax": "Speed max",
+        "chainSpeedRangeHelper": "0 means unlimited",
         "performanceTitle": "Performance parameters",
         "includeHandshake": "Include handshake time in latency",
         "handshake": {
@@ -2915,13 +2799,11 @@
       "usageFailed": "Failed to load template usage",
       "deleteSuccess": "Deleted successfully",
       "deleteFailed": "Delete failed",
-      "promptRequired": "Please enter an AI instruction",
       "convertSuccess": "Rules generated/converted successfully",
       "convertExpandSuccess": "Rules generated/converted and expanded successfully",
       "convertFailed": "Rule generation/conversion failed",
       "convertError": "An error occurred during generation/conversion",
       "converting": "Converting rules...",
-      "diffSaveBlocked": "Currently in AI compare mode. Return to edit mode before saving.",
       "updateSuccess": "Updated successfully",
       "updateFailed": "Update failed",
       "addSuccess": "Added successfully",
@@ -2930,66 +2812,6 @@
       "baseTemplateSaveSuccess": "{{category}} base template saved",
       "baseTemplateSaveFailed": "Failed to save base template",
       "cleared": "Content cleared"
-    },
-    "ai": {
-      "setupGuidance": "Go to Settings > AI Assistant to enable and complete configuration.",
-      "setupUnavailable": "AI Assistant is currently unavailable.",
-      "promptPlaceholder": "Tell AI how to adjust the current template...",
-      "promptAria": "AI instruction",
-      "generate": "Generate",
-      "generating": "Generating",
-      "goSettings": "Go to settings",
-      "goSettingsShort": "Settings",
-      "disabled": "AI Assistant is disabled",
-      "mode": {
-        "edit": "Edit",
-        "diff": "Compare"
-      },
-      "usage": {
-        "input": "Input",
-        "output": "Output",
-        "cache": "Cache"
-      },
-      "status": {
-        "generating": "Generating a draft based on the current editor content.",
-        "outdated": "Current content or configuration changed. Generate a new draft again.",
-        "unsavedTemplate": "This template is not saved yet. You can apply it to the editor first, then save.",
-        "diffReadonly": "Compare mode is read-only. Return to edit mode before saving.",
-        "applied": "The editor has loaded the AI draft.",
-        "revertAvailable": "A snapshot before applying is available and can be reverted in edit mode.",
-        "ready": "You can compare, apply, or keep editing the current candidate draft.",
-        "prompt": "Enter an instruction to generate a candidate draft."
-      },
-      "statusChip": {
-        "generating": "Generating",
-        "failed": "Generation failed",
-        "outdated": "Draft expired",
-        "applied": "Applied to editor",
-        "ready": "Draft ready",
-        "notGenerated": "Not generated",
-        "canRevert": "Can revert last accept",
-        "unsavedTemplate": "Unsaved template"
-      },
-      "messages": {
-        "promptRequired": "Please enter an AI instruction",
-        "generated": "AI draft generated. You can switch to side-by-side compare mode.",
-        "emptyCandidate": "AI generation finished, but no candidate content was returned.",
-        "generateFailed": "AI generation failed",
-        "setupUnavailable": "AI Assistant is currently unavailable. Go to Settings > AI Assistant to complete configuration.",
-        "generateFirst": "Generate an AI candidate first",
-        "alreadyApplied": "The current editor content already matches the AI candidate",
-        "outdatedAccept": "Template content or configuration changed. Regenerate or revalidate the candidate before accepting it into the editor.",
-        "accepted": "AI draft written to the editor. You can keep editing or save directly.",
-        "noRevert": "No local accept snapshot to revert",
-        "reverted": "Restored the editor content from before the most recent AI candidate accept",
-        "diffSaveBlocked": "Currently in AI compare mode. Return to edit mode before saving."
-      },
-      "aria": {
-        "expandCommand": "Expand AI instruction toolbar",
-        "collapseCommand": "Collapse AI instruction toolbar",
-        "collapseDisabledPrompt": "Collapse AI Assistant enablement prompt",
-        "viewDisabledPrompt": "View AI Assistant enablement prompt"
-      }
     }
   },
   "nodeConditions": {
@@ -3097,12 +2919,6 @@
         "tag": "Cloud service"
       }
     }
-  },
-  "skill": {
-    "downloadTooltip": "Download AI Skill",
-    "downloadDialogTitle": "Download AI Skill",
-    "downloadDialogMessage": "Do you want to download the SublinkPro AI skill package? This file contains custom skill configurations for Claude Code.",
-    "downloading": "Downloading..."
   },
   "donation": {
     "title": "Support the project",
@@ -3525,87 +3341,6 @@
         "duplicateGroup": "{{name}} duplicate group",
         "samplePrimary": "Hong Kong Node-01",
         "sampleSecondary": "Japan Node"
-      }
-    },
-    "systemMonitor": {
-      "title": "System Monitor",
-      "hidden": "Hidden",
-      "env": "Env: {{env}}",
-      "unavailable": "System monitor data is unavailable",
-      "actions": {
-        "enableAutoRefresh": "Enable auto refresh ({{seconds}}s)",
-        "disableAutoRefresh": "Disable auto refresh"
-      },
-      "uptime": {
-        "days": "{{days}}d {{hours}}h {{minutes}}m",
-        "hours": "{{hours}}h {{minutes}}m {{seconds}}s",
-        "minutes": "{{minutes}}m {{seconds}}s",
-        "seconds": "{{seconds}}s"
-      },
-      "metrics": {
-        "heapMemory": "Heap memory",
-        "heapAllocated": "Allocated: {{value}}",
-        "cpuCores": "{{count}} cores",
-        "cgoCalls": "CGO calls: {{count}}",
-        "uptime": "Uptime",
-        "startedAt": "Started at {{value}}",
-        "cpu": "CPU",
-        "goroutines": "Goroutines",
-        "gomaxprocs": "GOMAXPROCS: {{count}}"
-      },
-      "runtime": {
-        "title": "Runtime memory details",
-        "heapInUse": "Heap in use",
-        "stackInUse": "Stack in use",
-        "gcCount": "GC count",
-        "gcPause": "GC pause",
-        "gcCpu": "GC CPU",
-        "systemMemory": "System memory",
-        "totalAllocated": "Total allocated"
-      },
-      "config": {
-        "title": "Runtime configuration",
-        "keys": {
-          "port": "Port",
-          "expire_days": "Token Expire Days",
-          "login_fail_count": "Login Fail Limit",
-          "login_fail_window": "Login Fail Window",
-          "login_ban_duration": "Login Ban Duration",
-          "log_level": "Log Level",
-          "captcha_mode": "Captcha Mode",
-          "trusted_proxies": "Trusted Proxies",
-          "feature": "Feature Flags",
-          "dsn": "Database Connection",
-          "db_path": "Local DB Path",
-          "log_path": "Log Directory",
-          "geoip_path": "GeoIP Database",
-          "web_base_path": "Web Base Path",
-          "turnstile_site_key": "Turnstile Site Key",
-          "turnstile_proxy_link": "Turnstile Proxy Link"
-        },
-        "values": {
-          "plain": "{{count}}",
-          "days": "{{count}} days",
-          "times": "{{count}} times",
-          "minutes": "{{count}} minutes",
-          "unset": "Not set",
-          "literal": "{{value}}",
-          "captchaDisabled": "Disabled",
-          "captchaTurnstile": "Cloudflare Turnstile",
-          "captchaTurnstileDegraded": "Cloudflare Turnstile (degraded to legacy captcha)",
-          "captchaLegacy": "Legacy captcha",
-          "disabled": "Disabled",
-          "rules": "{{count}} rules",
-          "configured": "Configured",
-          "notConfigured": "Not configured",
-          "configuredHidden": "Configured (details hidden)",
-          "defaultPath": "Default path",
-          "customPath": "Customized",
-          "autoDetect": "Auto detect",
-          "rootPath": "Root path",
-          "databaseConfigured": "{{kind}} · configured",
-          "databaseHost": "{{kind}} · {{host}} · {{database}}"
-        }
       }
     },
     "geoIpSettings": {

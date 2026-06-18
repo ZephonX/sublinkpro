@@ -19,11 +19,9 @@ Welcome to SublinkPro documentation. This index helps you find the right documen
 - **[Speed Test](features/speedtest.md)** - Two-stage testing, latency/speed, IP quality
 - **[Unlock Checks](features/unlock-check.md)** - Streaming & AI availability testing
 - **[Chain Proxy](features/chain-proxy.md)** - Condition-based node selection
-- **[Template AI Editing](features/template-ai.md)** - AI-assisted template generation
 - **[Airport Management](features/airport.md)** - Import, scheduled updates, traffic monitoring
 - **[Subscription Sharing](features/subscription-share.md)** - Multiple links, expiration, stats
 - **[Host Management](features/host.md)** - Domain mappings, DNS, CDN preferred IPs
-- **[Cloudflare Tunnel](features/cloudflare-tunnel.md)** - Secure public access
 - **[Telegram Bot](features/telegram-bot.md)** - Command list, setup guide
 - **[Multi-Factor Auth (MFA)](features/mfa.md)** - TOTP, recovery codes, emergency reset
 - **[Script Support](script_support.md)** - Node filtering, post-processing functions
@@ -58,13 +56,6 @@ Located in `.agents/skills/`:
 - **cross-layer-sync** - Multi-layer synchronization guide
 - **pre-commit-check** - Pre-commit validation steps
 - **doc-sync-check** - Documentation sync requirements
-
-### AI Agent Skill (User-Facing)
-- **[skill-sublinkpro/](../../skill-sublinkpro/)** - Portable AI skill for REST API interaction
-  - `SKILL.md` - Skill definition and workflows
-  - `reference/api.md` - API endpoint reference
-  - `reference/deploy.md` - Deployment guide
-  - `reference/docs.md` - Documentation map
 
 ---
 
@@ -137,8 +128,6 @@ See [Contributing Guide](../CONTRIBUTING.md) for details.
 
 - **GitHub Issues**: https://github.com/ZeroDeng01/sublinkPro/issues
 - **Telegram Group**: See README for link
-- **Skill API**: Use `skill-sublinkpro/` for AI-assisted help
-
 ---
 
 ## 📝 Note

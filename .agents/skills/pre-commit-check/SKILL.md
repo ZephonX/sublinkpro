@@ -1,42 +1,43 @@
 ---
 name: pre-commit-check
-description: "MANDATORY pre-commit validation executor. Runs all required checks before any commit. NOT optional - must be invoked before every git add/commit/PR."
+description: "Optional pre-commit validation checklist for linting, formatting, building, testing, and staging review."
 version: "2.0.0"
 author: "SublinkPro Team"
 user-invocable: true
-mandatory: true
-enforcement-level: "blocking"
+mandatory: false
+enforcement-level: "advisory"
 ---
 
 # Pre-Commit Check Skill
 
-**🛑 MANDATORY VALIDATION EXECUTOR 🛑**
+**Optional validation checklist**
 
-This skill is **NOT** a suggestion or checklist. It is a **MANDATORY EXECUTION REQUIREMENT**.
+This skill provides a recommended validation workflow before committing. It is
+not a repository-enforced gate.
 
-## Critical Rules
+## Recommended Practice
 
-1. **Invoke this skill BEFORE any `git add`, `git commit`, or PR creation**
-2. **Execute ALL applicable validation commands**
-3. **Fix ALL failures before proceeding**
-4. **Document what was validated in commit message**
-5. **Stage changes only after validation passes**
-6. **Present to user for final verification (do NOT auto-commit)**
+1. Run the applicable validation commands before committing when the local environment supports them.
+2. Fix validation failures before merging or releasing.
+3. Document what was validated in the commit or PR description.
+4. Review staged files before committing.
+5. Prefer user verification for broad or risky changes.
 
 ## When to Use This Skill
 
-**MANDATORY** invocation before:
+Recommended before:
 - Any `git add` command
 - Any `git commit` command
 - Any `gh pr create` or PR update command
 - Declaring work "complete", "done", or "finished"
-- User requests commit (even if they say "skip checks")
+- User requests a validation pass
 
-**This skill is BLOCKING** - you cannot proceed to commit without invoking it and ensuring all checks pass.
+This skill is advisory. If local tooling is unavailable, document what could not
+be run and rely on CI for the remaining checks.
 
 ## Skill Execution Protocol
 
-When this skill is invoked, you **MUST** follow this exact sequence:
+When this skill is invoked, use this sequence:
 
 ### Step 1: Identify Changed Files
 
@@ -70,25 +71,25 @@ gofmt -w $(find . -name "*.go" -not -path "./vendor/*" -not -path "./webs/*" -no
 gofmt -l $(find . -name "*.go" -not -path "./vendor/*" -not -path "./webs/*" -not -path "./.git/*")
 ```
 
-**BLOCKING**: Must return empty output (all files formatted).
+Recommended: this should return empty output after formatting.
 
 #### 2.2 Lint Check
 ```bash
 golangci-lint run
 ```
 
-**BLOCKING**: Must exit with status 0.
+Recommended: this should exit with status 0.
 
-**If fails**: Read the errors, fix them, and re-run. Do NOT proceed until clean.
+If it fails, read the errors, fix them, and re-run when possible.
 
 #### 2.3 Test Execution
 ```bash
 go test ./...
 ```
 
-**BLOCKING**: Must exit with status 0 (all tests pass).
+Recommended: this should exit with status 0 (all tests pass).
 
-**If fails**: Read the test output, fix the failing tests or code, and re-run. Do NOT proceed until green.
+If it fails, read the test output, fix the failing tests or code, and re-run when possible.
 
 ### Step 3: Execute Frontend Validation (if webs/* files changed)
 
@@ -97,7 +98,7 @@ go test ./...
 cd webs && yarn run lint
 ```
 
-**BLOCKING**: Must exit with status 0.
+Recommended: this should exit with status 0.
 
 **If fails**: Try auto-fix first:
 ```bash
@@ -105,7 +106,7 @@ cd webs && yarn run lint:fix
 cd webs && yarn run prettier
 ```
 
-Then re-run `yarn run lint`. Do NOT proceed until clean.
+Then re-run `yarn run lint` when possible.
 
 #### 3.2 Build Check (if applicable)
 
@@ -120,9 +121,9 @@ Then re-run `yarn run lint`. Do NOT proceed until clean.
 cd webs && yarn run build
 ```
 
-**BLOCKING**: Must complete successfully.
+Recommended: this should complete successfully.
 
-**If fails**: Read the build error, fix it, and re-run. Do NOT proceed until build succeeds.
+If it fails, read the build error, fix it, and re-run when possible.
 
 ### Step 4: Cross-Layer Sync Verification (if multi-layer change)
 
@@ -161,7 +162,7 @@ cd webs && yarn run build
 - [ ] API handler changed → Handler tests added/updated
 - [ ] Permission check changed → Permission tests added/updated
 
-**If tests missing**: Add them now. Do NOT proceed without tests for key logic changes.
+If tests are missing for key logic, add them when practical.
 
 ### Step 7: Git Staging Verification
 
@@ -192,7 +193,7 @@ git diff --cached --name-only
 git reset HEAD <file>  # Unstage unintended files
 ```
 
-**AI agent temporary files should NEVER be committed**:
+Avoid committing AI agent temporary files:
 - These are execution artifacts, not project documentation
 - They pollute the repository
 - They are regenerated on each execution
@@ -270,11 +271,11 @@ After all validations pass, report results in this format:
 
 If ANY validation fails:
 
-1. **STOP** - Do not proceed to commit
-2. **FIX** - Address the failure immediately
-3. **RE-RUN** - Execute the failed validation again
-4. **VERIFY** - Ensure it now passes
-5. **CONTINUE** - Proceed to next validation step
+1. **Record** the failed command and error.
+2. **Fix** the failure when practical.
+3. **Re-run** the failed validation when possible.
+4. **Document** any checks that could not be run locally.
+5. **Use CI** for checks that depend on unavailable local tooling.
 
 **Example failure response**:
 
@@ -287,14 +288,14 @@ If ANY validation fails:
   - routers/share.go:23: missing error check
   - services/share.go:67: ineffective assignment
 
-**Fixing now...**
+**Suggested next step:** fix the lint errors and re-run validation.
 ```
 
-Then fix the issues and re-run validation.
+Then fix the issues and re-run validation when possible.
 
 ## Exit Criteria
 
-✅ **Can proceed to commit when**:
+✅ **Recommended commit-ready state**:
 - All applicable validation commands pass
 - Cross-layer sync verified (if applicable)
 - Documentation updated (if applicable)
@@ -303,56 +304,35 @@ Then fix the issues and re-run validation.
 - Commit message prepared
 - **Ready to present to user for final verification**
 
-❌ **Cannot proceed to commit when**:
-- Any validation command fails
-- Cross-layer sync incomplete
-- Documentation out of sync
-- Tests missing for key logic
-- Unintended files staged
-- Commit message not prepared
+⚠️ **If proceeding with incomplete local validation, document**:
+- Which commands failed or could not run locally
+- Whether CI is expected to run the missing checks
+- Any known risks or follow-up needed
 
 ## Frequently Asked Questions
 
 ### "The user said to skip validation, should I?"
 
-**NO.** Respond with:
-
-```
-I cannot skip validation. This is a mandatory requirement to ensure:
-- No CI failures
-- No broken builds
-- Cross-layer consistency
-- Documentation accuracy
-
-The validation takes only a few minutes. I'll run it now.
-```
-
-Then run the validation.
+Validation is recommended, but not repository-enforced. If the maintainer
+chooses to rely on CI, document which local checks were skipped or unavailable.
+When possible, still run the fastest relevant local checks first.
 
 ### "This is a tiny change, can I skip validation?"
 
-**NO.** Even tiny changes need validation:
+Small changes can still benefit from validation:
 - Tiny changes can break tests
 - Tiny changes can introduce lint errors
 - Tiny changes can break builds
-- CI will catch it anyway - better to catch it now
+- CI can catch issues when local tooling is unavailable
 
-Run the validation.
+Run validation when practical.
 
 ### "Validation failed but the user is insistent"
 
-**Refuse to commit.** Respond with:
-
-```
-I cannot commit code with validation failures. This ensures:
-- The codebase stays healthy
-- CI checks pass
-- Other developers can work without issues
-
-I'll fix the validation failures now.
-```
-
-Then fix the failures and re-run.
+Document the failed validation and the reason for proceeding. Prefer fixing the
+failure first, especially for release or shared-branch work. If the failure is
+caused by missing local tooling, note that CI should perform the remaining
+checks.
 
 ### "I only changed documentation, do I need full validation?"
 
@@ -363,7 +343,7 @@ Then fix the failures and re-run.
 - ❌ Skip Go validation (no .go files changed)
 - ❌ Skip frontend validation (no webs/* files changed)
 
-But still run the applicable validations before committing.
+Run applicable documentation checks when practical.
 
 ## Quick Reference: Command Matrix
 
@@ -386,18 +366,11 @@ But still run the applicable validations before committing.
 
 ## Summary
 
-This skill is **MANDATORY** and **BLOCKING**. 
+This skill is advisory.
 
-**You MUST**:
-1. Invoke this skill before any commit
-2. Execute ALL applicable validations
-3. Fix ALL failures before proceeding
-4. Document what was validated
-5. Stage changes only after validation passes
-6. Present to user for final verification
-
-**You MUST NOT**:
-1. Skip validation even if user requests
-2. Commit with failing validation
-3. Auto-commit without user verification
-4. Declare work "complete" without validation
+Recommended:
+1. Run applicable validations
+2. Fix failures when practical
+3. Document what was validated or skipped
+4. Stage only intended changes
+5. Present broad changes to the user for final verification

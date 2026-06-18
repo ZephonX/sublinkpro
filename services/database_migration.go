@@ -600,7 +600,7 @@ func checkDatabaseMigrationContext(ctx context.Context) error {
 
 func loadPreservedTargetSettings(tx *gorm.DB) (map[string]string, error) {
 	result := make(map[string]string)
-	for _, key := range []string{"jwt_secret", "cloudflared_enabled", "cloudflared_tunnel_token_encrypted"} {
+	for _, key := range []string{"jwt_secret"} {
 		var setting models.SystemSetting
 		err := tx.Where(map[string]any{"key": key}).Take(&setting).Error
 		if err == nil {
@@ -705,7 +705,7 @@ func importSystemSettings(state *databaseMigrationState) error {
 
 func shouldPreserveTargetSetting(key string) bool {
 	switch key {
-	case "jwt_secret", "cloudflared_enabled", "cloudflared_tunnel_token_encrypted":
+	case "jwt_secret":
 		return true
 	default:
 		return false

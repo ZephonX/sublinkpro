@@ -20,7 +20,6 @@ import (
 	"sublink/node/protocol"
 	"sublink/routers"
 	"sublink/services"
-	"sublink/services/cloudflared"
 	"sublink/services/geoip"
 	"sublink/services/mihomo"
 	"sublink/services/notifications"
@@ -41,9 +40,6 @@ var Template embed.FS
 
 //go:embed VERSION
 var versionFile embed.FS
-
-//go:embed skill-sublinkpro
-var SkillFS embed.FS
 
 var version string
 
@@ -524,10 +520,7 @@ func Run() {
 		utils.Error("加载链式代理规则到缓存失败: %v", err)
 	}
 
-	// 根据页面保存的配置自动启动 Cloudflare Tunnel。
-	cloudflared.AutoStart()
-
-	// 注册Host变更回调：当Host模块数据变更时自动同步到mihomo resolver
+		// 注册Host变更回调：当Host模块数据变更时自动同步到mihomo resolver
 	// 这样所有使用代理的功能（测速、订阅导入、Telegram等）都遵循Host设置
 	models.RegisterHostChangeCallback(func() {
 		if err := mihomo.SyncHostsFromDB(); err != nil {
@@ -637,7 +630,6 @@ func Run() {
 	routers.Templates(r)
 	routers.Version(r, version)
 	routers.Backup(r)
-	routers.Skill(r, SkillFS)
 	routers.Script(r)
 	routers.SSE(r)
 	routers.Settings(r)
@@ -748,13 +740,10 @@ func Run() {
 	shutdownCtx, stopSignal := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopSignal()
 
-	go func() {
-		<-shutdownCtx.Done()
-		utils.Info("收到退出信号，正在停止后台服务")
-		if err := cloudflared.DefaultManager().Shutdown(); err != nil {
-			utils.Warn("停止 cloudflared 失败: %v", err)
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		go func() {
+			<-shutdownCtx.Done()
+			utils.Info("收到退出信号，正在停止后台服务")
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := server.Shutdown(ctx); err != nil {
 			utils.Warn("HTTP 服务关闭失败: %v", err)

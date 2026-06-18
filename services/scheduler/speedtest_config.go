@@ -40,6 +40,11 @@ type SpeedTestConfig struct {
 
 	DetectUnlock    bool
 	UnlockProviders []string
+
+	ChainFilterEnabled bool
+	ChainLatencyMax    int
+	ChainSpeedMin      float64
+	ChainSpeedMax      float64
 }
 
 // SpeedTestConfigFromProfile 从策略构建配置（并发安全）
@@ -100,5 +105,9 @@ func SpeedTestConfigFromProfile(profile *models.NodeCheckProfile) *SpeedTestConf
 		QualityCheckURL:     profile.QualityCheckURL,
 		DetectUnlock:        profile.DetectUnlock,
 		UnlockProviders:     models.NormalizeUnlockProviders(profile.GetUnlockProviders()),
+		ChainFilterEnabled:  profile.ChainFilterEnabled,
+		ChainLatencyMax:     profile.ChainLatencyMax,
+		ChainSpeedMin:       profile.ChainSpeedMin,
+		ChainSpeedMax:       profile.ChainSpeedMax,
 	}
 }

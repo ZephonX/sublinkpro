@@ -29,8 +29,6 @@ func HandleCallbackQuery(bot *TelegramBot, callback *CallbackQuery) error {
 		return handleHelpCallback(bot, callback)
 	case "stats":
 		return handleStatsCallback(bot, callback)
-	case "monitor":
-		return handleMonitorCallback(bot, callback)
 	case "nodes":
 		return handleNodesCallback(bot, callback)
 	case "tasks":
@@ -105,15 +103,6 @@ func handleHelpCallback(bot *TelegramBot, callback *CallbackQuery) error {
 // handleStatsCallback 处理 stats 回调
 func handleStatsCallback(bot *TelegramBot, callback *CallbackQuery) error {
 	handler := GetHandler("stats")
-	if handler == nil {
-		return nil
-	}
-	return handler.Handle(bot, callback.Message)
-}
-
-// handleMonitorCallback 处理 monitor 回调
-func handleMonitorCallback(bot *TelegramBot, callback *CallbackQuery) error {
-	handler := GetHandler("monitor")
 	if handler == nil {
 		return nil
 	}

@@ -51,6 +51,12 @@ type NodeCheckProfile struct {
 	DetectUnlock    bool   `gorm:"default:false" json:"detectUnlock"`
 	UnlockProviders string `gorm:"type:text" json:"unlockProviders"`
 
+	// 链式过滤：用上一阶段结果决定是否进入下一阶段
+	ChainFilterEnabled bool    `gorm:"default:false" json:"chainFilterEnabled"`
+	ChainLatencyMax    int     `gorm:"default:0" json:"chainLatencyMax"`
+	ChainSpeedMin      float64 `gorm:"default:0" json:"chainSpeedMin"`
+	ChainSpeedMax      float64 `gorm:"default:0" json:"chainSpeedMax"`
+
 	// 执行时间记录
 	LastRunTime *time.Time `json:"lastRunTime"` // 上次执行时间
 	NextRunTime *time.Time `json:"nextRunTime"` // 下次执行时间
@@ -111,6 +117,7 @@ func (p *NodeCheckProfile) Update() error {
 		"TrafficByGroup", "TrafficBySource", "TrafficByNode",
 		"DetectQuality", "QualityCheckURL",
 		"DetectUnlock", "UnlockProviders",
+		"ChainFilterEnabled", "ChainLatencyMax", "ChainSpeedMin", "ChainSpeedMax",
 	).Updates(p).Error
 	if err != nil {
 		return err

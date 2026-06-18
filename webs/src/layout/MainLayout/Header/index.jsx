@@ -9,7 +9,6 @@ import LogoSection from '../LogoSection';
 import ProfileSection from './ProfileSection';
 import NotificationSection from './NotificationSection';
 import DonationSection from './DonationSection';
-import SkillDownloadSection from './SkillDownloadSection';
 import ThemeModeSection from './ThemeModeSection';
 import LanguageSection from './LanguageSection';
 import useResolvedColorScheme from 'hooks/useResolvedColorScheme';
@@ -78,11 +77,6 @@ export default function Header() {
 
       {/* donation */}
       <DonationSection />
-
-      {/* AI skill download - desktop only */}
-      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-        <SkillDownloadSection />
-      </Box>
 
       {/* notification */}
       <NotificationSection />

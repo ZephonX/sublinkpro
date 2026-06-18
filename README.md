@@ -14,9 +14,9 @@
     <img src="https://img.shields.io/github/release-date/ZeroDeng01/sublinkPro?style=flat-square&logo=github&label=Release%20Date" alt="Release Date"/>
   </p>
   <p>
-    <img src="https://img.shields.io/docker/v/zerodeng/sublink-pro/latest?style=flat-square&logo=docker&logoColor=white&label=Docker%20Stable" alt="Docker Stable Version"/>
-    <img src="https://img.shields.io/docker/pulls/zerodeng/sublink-pro?style=flat-square&logo=docker&logoColor=white&label=Docker%20Pulls" alt="Docker Pulls"/>
-    <img src="https://img.shields.io/docker/image-size/zerodeng/sublink-pro/latest?style=flat-square&logo=docker&logoColor=white&label=Image%20Size" alt="Docker Image Size"/>
+    <img src="https://img.shields.io/docker/v/ghcr.io/zephonx/sublinkpro/latest?style=flat-square&logo=docker&logoColor=white&label=Docker%20Stable" alt="Docker Stable Version"/>
+    <img src="https://img.shields.io/docker/pulls/ghcr.io/zephonx/sublinkpro?style=flat-square&logo=docker&logoColor=white&label=Docker%20Pulls" alt="Docker Pulls"/>
+    <img src="https://img.shields.io/docker/image-size/ghcr.io/zephonx/sublinkpro/latest?style=flat-square&logo=docker&logoColor=white&label=Image%20Size" alt="Docker Image Size"/>
   </p>
   <p>
     <img src="https://img.shields.io/github/stars/ZeroDeng01/sublinkPro?style=flat-square&logo=github&label=Stars" alt="GitHub Stars"/>
@@ -61,17 +61,14 @@ English | [简体中文](README.zh-CN.md)
 | 🏷️ **Smart tag system** | Automatic rule based tagging, no code filtering, IP quality conditions | [📖](docs/features/tags.md) |
 | ⚡ **Professional speed test system** | Two stage tests, smart latency measurement, IP quality and unlock checks | [📖](docs/features/speedtest.md) |
 | 🔗 **Chain proxy** | Native Dialer-Proxy support, visual configuration, IP quality based node selection | [📖](docs/features/chain-proxy.md) |
-| 🤖 **AI template editing** | Generate template drafts from natural language, review with edit and diff views, apply or roll back locally | [📖](docs/features/template-ai.md) |
 | ✈️ **Airport management** | Multi format import, scheduled updates, traffic monitoring, one click full refresh | [📖](docs/features/airport.md) |
 | 🗂️ **Group ordering** | Drag airport priority within a group to control node order in subscription output | [📖](docs/development.md) |
 | 📋 **Subscription sharing** | Multiple links, expiration policies, access statistics | [📖](docs/features/subscription-share.md) |
 | 🌐 **Host management** | Domain mappings, DNS configuration, CDN preferred IPs | [📖](docs/features/host.md) |
-| ☁️ **Cloudflare Tunnel** | Expose the admin UI without a public IP, with cloudflared managed from the page | [📖](docs/features/cloudflare-tunnel.md) |
-| 🤖 **Telegram Bot** | Remote speed tests, subscription management, system monitoring | [📖](docs/features/telegram-bot.md) |
+| 🤖 **Telegram Bot** | Remote speed tests and subscription management | [📖](docs/features/telegram-bot.md) |
 | 📜 **Script system** | Node filtering, content post processing, chained scripts | [📖](docs/script_support.md) |
 | 🔔 **Webhooks** | Supports PushDeer, Bark, DingTalk, ServerChan, and other notification platforms | [📖](docs/configuration.md) |
 | 🔐 **Security features** | Token authorization, API Key, IP allow and block lists, access logs | [📖](docs/configuration.md) |
-| 🦾 **AI agent skill** | Drive the whole system in natural language via the REST API — add nodes, build and share subscriptions, manage airports and templates. Portable `SKILL.md` format, works with any compatible AI agent | [📖](skill-sublinkpro/README.md) |
 
 ---
 
@@ -91,7 +88,7 @@ Create `docker-compose.yml`:
 ```yaml
 services:
   sublinkpro:
-    image: zerodeng/sublink-pro
+    image: ghcr.io/zephonx/sublinkpro
     container_name: sublinkpro
     ports:
       - "8000:8000"
@@ -117,9 +114,6 @@ SQLite is used by default. To switch to MySQL or PostgreSQL, set the database co
 
 > [!TIP]
 > For more install methods, including Docker, one line scripts, updates, and upgrades, see the [📦 Installation Guide](docs/installation.md).
-
-> [!TIP]
-> The Docker image includes `cloudflared`. After signing in, open `User Center -> Cloudflare Tunnel`, enter the token, and start it. When auto connect is enabled, the Tunnel connects when the service starts.
 
 ### Migrate from SQLite to MySQL / PostgreSQL
 
@@ -160,11 +154,9 @@ If your earlier instance used SQLite and you now want to migrate to MySQL or Pos
 | [⚡ Speed test system](docs/features/speedtest.md) | Test design, IP quality checks, unlock checks, parameter tuning |
 | [🌍 Unlock checks](docs/features/unlock-check.md) | Streaming and AI availability checks, Provider architecture, extensions |
 | [🔗 Chain proxy](docs/features/chain-proxy.md) | Dialer-Proxy, condition based node selection, configuration flow |
-| [🤖 AI template editing](docs/features/template-ai.md) | AI generated template drafts, edit and diff review, local apply and rollback |
 | [✈️ Airport management](docs/features/airport.md) | Subscription import, scheduled updates, traffic monitoring |
 | [📋 Subscription sharing](docs/features/subscription-share.md) | Multiple links, expiration policies, access statistics |
 | [🌐 Host management](docs/features/host.md) | Domain mappings, DNS configuration, speed test persistence |
-| [☁️ Cloudflare Tunnel](docs/features/cloudflare-tunnel.md) | Create a Tunnel, get a token, configure public access |
 | [🤖 Telegram Bot](docs/features/telegram-bot.md) | Command list and setup guide |
 | [📜 Script support](docs/script_support.md) | Node filtering, content post processing, function reference |
 | [🔐 Multi factor authentication, MFA](docs/features/mfa.md) | TOTP setup, recovery codes, emergency reset flow |

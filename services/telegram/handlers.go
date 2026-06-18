@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strings"
 	"sublink/models"
-	"sublink/services/monitor"
 	"sublink/utils"
 	"sync"
 	"time"
@@ -54,7 +53,6 @@ func init() {
 	RegisterHandler("start", &StartHandler{})
 	RegisterHandler("help", &HelpHandler{})
 	RegisterHandler("stats", &StatsHandler{})
-	RegisterHandler("monitor", &MonitorHandler{})
 	RegisterHandler("profiles", &ProfilesHandler{})
 	RegisterHandler("subscriptions", &SubscriptionsHandler{})
 	RegisterHandler("nodes", &NodesHandler{})
@@ -77,7 +75,6 @@ func (h *StartHandler) Handle(bot *TelegramBot, message *Message) error {
 
 *可用功能：*
 • 📊 查看仪表盘统计数据
-• 🖥️ 查看系统监控信息
 • ⚡ 节点检测策略管理
 • 📋 管理订阅和节点
 • 🏷️ 执行标签规则
@@ -86,8 +83,8 @@ func (h *StartHandler) Handle(bot *TelegramBot, message *Message) error {
 使用 /help 查看详细命令列表`
 
 	keyboard := [][]InlineKeyboardButton{
-		{NewInlineButton("📊 统计", "stats"), NewInlineButton("🖥️ 监控", "monitor")},
-		{NewInlineButton("⚡ 检测策略", "profiles"), NewInlineButton("📋 订阅", "subscriptions")},
+		{NewInlineButton("📊 统计", "stats"), NewInlineButton("⚡ 检测策略", "profiles")},
+		{NewInlineButton("📋 订阅", "subscriptions"), NewInlineButton("🌐 节点", "nodes")},
 		{NewInlineButton("❓ 帮助", "help")},
 	}
 
@@ -107,7 +104,6 @@ func (h *HelpHandler) Handle(bot *TelegramBot, message *Message) error {
 /start - 🚀 开始使用
 /help - ❓ 帮助信息
 /stats - 📊 仪表盘统计
-/monitor - 🖥️ 系统监控
 /profiles - ⚡ 检测策略
 /subscriptions - 📋 订阅管理
 /nodes - 🌐 节点信息
@@ -392,45 +388,6 @@ func formatExpireTimeLocal(timestamp int64) string {
 	}
 	t := time.Unix(timestamp, 0)
 	return t.Format("2006-01-02 15:04")
-}
-
-// ============ MonitorHandler ============
-
-type MonitorHandler struct{}
-
-func (h *MonitorHandler) Command() string     { return "monitor" }
-func (h *MonitorHandler) Description() string { return "🖥️ 系统监控" }
-
-func (h *MonitorHandler) Handle(bot *TelegramBot, message *Message) error {
-	stats := monitor.GetSystemStats()
-
-	// 转换字节为 MB
-	heapAllocMB := float64(stats.HeapAlloc) / 1024 / 1024
-	sysMB := float64(stats.Sys) / 1024 / 1024
-
-	text := fmt.Sprintf(`🖥️ *系统监控*
-
-*内存使用*
-├ 堆分配: %.2f MB
-├ 系统总: %.2f MB
-└ GC 次数: %d
-
-*运行状态*
-├ Goroutines: %d
-├ CPU 核心: %d
-└ 运行时间: %d 秒`,
-		heapAllocMB,
-		sysMB,
-		stats.NumGC,
-		stats.NumGoroutine,
-		stats.NumCPU,
-		stats.Uptime)
-
-	keyboard := [][]InlineKeyboardButton{
-		{NewInlineButton("🔄 刷新", "monitor"), NewInlineButton("📊 统计", "stats")},
-	}
-
-	return bot.SendMessageWithKeyboard(message.Chat.ID, text, "Markdown", keyboard)
 }
 
 // ============ ProfilesHandler ============

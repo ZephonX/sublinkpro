@@ -163,15 +163,6 @@ const system = {
       breadcrumbs: true
     },
     {
-      id: 'monitor',
-      title: 'System Monitor',
-      titleKey: 'navigation.items.monitor',
-      type: 'item',
-      url: '/system/monitor',
-      icon: IconDeviceDesktopAnalytics,
-      breadcrumbs: true
-    },
-    {
       id: 'app-settings',
       title: 'Application Settings',
       titleKey: 'navigation.items.appSettings',

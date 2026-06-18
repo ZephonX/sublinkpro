@@ -38,10 +38,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           # cache: 'yarn' # Disabled to prevent using system Yarn v1 which conflicts with Corepack Yarn v4
@@ -56,7 +56,7 @@ jobs:
           echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
 
       - name: Cache dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v4
         id: yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
@@ -80,7 +80,7 @@ jobs:
           yarn run build
 
       - name: Upload frontend artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
           path: webs/dist/
@@ -90,10 +90,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version: '1.26.4'
           cache: true
@@ -153,17 +153,17 @@ jobs:
             upx: false
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version: '1.26.4'
           cache: true
           cache-dependency-path: go.sum
 
       - name: Download frontend artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: static/
@@ -207,7 +207,7 @@ jobs:
           ls -lh build/${{ matrix.output }}
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
           path: build/${{ matrix.output }}
@@ -219,7 +219,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download all binary artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           pattern: binary-*
           path: build/
@@ -260,7 +260,7 @@ jobs:
           echo "=== All binaries verified successfully ==="
 
       - name: Upload merged binaries
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: go-binaries
           path: build/
@@ -272,12 +272,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Download binary artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: go-binaries
           path: build/
@@ -314,7 +314,7 @@ jobs:
           echo "- \`sublinkPro-darwin-arm64\` - macOS ARM64 (Apple Silicon)" >> changelog.md
 
       - name: Create Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.changelog.outputs.current_tag }}
           name: Release ${{ steps.changelog.outputs.current_tag }}
@@ -338,41 +338,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Download frontend artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: static/
 
       - name: Download binary artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: go-binaries
           path: build/
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v4
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Multi-Arch Docker Image
         run: |
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             # 带 tag 的推送：使用 tag 版本号 + latest
             TAG=${GITHUB_REF#refs/tags/}
+            IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
             docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64,linux/arm/v7,linux/386 \
               -f Dockerfile.ci \
-              -t zerodeng/sublink-pro:${TAG} \
-              -t zerodeng/sublink-pro:latest \
+              -t "${IMAGE}:${TAG}" \
+              -t "${IMAGE}:latest" \
               --push .
           else
             # 分支推送：dev 和 main 分支统一使用 dev 标签，其他分支使用分支名
@@ -383,8 +385,9 @@ jobs:
               # 将分支名中的 / 替换为 - 以兼容 Docker tag 格式
               DOCKER_TAG=${BRANCH//\//-}
             fi
+            IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
             docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64,linux/arm/v7,linux/386 \
               -f Dockerfile.ci \
-              -t zerodeng/sublink-pro:${DOCKER_TAG} \
+              -t "${IMAGE}:${DOCKER_TAG}" \
               --push .
           fi

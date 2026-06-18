@@ -310,6 +310,27 @@ export const formatUnlockProvidersSummary = (providers, limit = 2) => {
   return extraCount > 0 ? `${labels.join('、')} +${extraCount}` : labels.join('、');
 };
 
+export const formatNodeCheckChainFilterSummary = (profile) => {
+  if (!profile?.chainFilterEnabled) return '';
+
+  const parts = [];
+  const latencyMax = Number(profile.chainLatencyMax) || 0;
+  const speedMin = Number(profile.chainSpeedMin) || 0;
+  const speedMax = Number(profile.chainSpeedMax) || 0;
+
+  if (latencyMax > 0) {
+    parts.push(translate('nodes.nodeCheckProfiles.chainFilter.latencyMax', 'Delay <= {{value}}ms', { value: latencyMax }));
+  }
+  if (speedMin > 0) {
+    parts.push(translate('nodes.nodeCheckProfiles.chainFilter.speedMin', 'Speed >= {{value}}MB/s', { value: speedMin }));
+  }
+  if (speedMax > 0) {
+    parts.push(translate('nodes.nodeCheckProfiles.chainFilter.speedMax', 'Speed <= {{value}}MB/s', { value: speedMax }));
+  }
+
+  return parts.length > 0 ? parts.join(' · ') : translate('nodes.nodeCheckProfiles.chainFilter.successOnly', 'Previous stage must pass');
+};
+
 const getLocalizedUnlockStatusLabel = (item) => {
   if (!item) return '';
   const value = getCleanString(item.value).toLowerCase();
@@ -367,7 +388,11 @@ export const createNodeCheckProfileFormState = (profile = null) => {
       detectQuality: profile.detectQuality || false,
       qualityCheckUrl: profile.qualityCheckUrl || '',
       detectUnlock: profile.detectUnlock || false,
-      unlockProviders: normalizeUnlockProviders(profile.unlockProviders)
+      unlockProviders: normalizeUnlockProviders(profile.unlockProviders),
+      chainFilterEnabled: Boolean(profile.chainFilterEnabled),
+      chainLatencyMax: profile.chainLatencyMax || 0,
+      chainSpeedMin: profile.chainSpeedMin || 0,
+      chainSpeedMax: profile.chainSpeedMax || 0
     };
   }
 
@@ -395,7 +420,11 @@ export const createNodeCheckProfileFormState = (profile = null) => {
     detectQuality: false,
     qualityCheckUrl: '',
     detectUnlock: false,
-    unlockProviders: []
+    unlockProviders: [],
+    chainFilterEnabled: false,
+    chainLatencyMax: 300,
+    chainSpeedMin: 0,
+    chainSpeedMax: 0
   };
 };
 
@@ -424,6 +453,10 @@ export const buildNodeCheckProfilePayload = (profile, overrides = {}) => ({
   qualityCheckUrl: profile.qualityCheckUrl || '',
   detectUnlock: Boolean(profile.detectUnlock),
   unlockProviders: normalizeUnlockProviders(profile.unlockProviders),
+  chainFilterEnabled: Boolean(profile.chainFilterEnabled),
+  chainLatencyMax: Math.max(0, Number(profile.chainLatencyMax) || 0),
+  chainSpeedMin: Math.max(0, Number(profile.chainSpeedMin) || 0),
+  chainSpeedMax: Math.max(0, Number(profile.chainSpeedMax) || 0),
   ...overrides
 });
 

@@ -182,7 +182,7 @@ volumes:
 version: '3.8'
 services:
   sublinkpro:
-    image: zerodeng/sublink-pro:latest
+    image: ghcr.io/zephonx/sublinkpro:latest
     user: "1000:1000"  # Non-root user
     volumes:
       - ./db:/app/db:rw

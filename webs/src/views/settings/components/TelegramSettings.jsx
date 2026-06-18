@@ -415,7 +415,6 @@ export default function TelegramSettings({ showMessage, loading, setLoading }) {
               <ul style={{ margin: 0, paddingLeft: 20 }}>
                 <li>/start - {t('settings.telegramPanel.commands.start')}</li>
                 <li>/stats - {t('settings.telegramPanel.commands.stats')}</li>
-                <li>/monitor - {t('settings.telegramPanel.commands.monitor')}</li>
                 <li>/speedtest - {t('settings.telegramPanel.commands.speedtest')}</li>
                 <li>/subscriptions - {t('settings.telegramPanel.commands.subscriptions')}</li>
                 <li>/nodes - {t('settings.telegramPanel.commands.nodes')}</li>

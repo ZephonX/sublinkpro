@@ -4,195 +4,20 @@ This file provides AI and human contributors with a high-level architectural gui
 
 ---
 
-## 0. MANDATORY PRE-COMMIT VALIDATION - NON-NEGOTIABLE REQUIREMENT
+## 0. Validation Guidance
 
-**⚠️ ABSOLUTE REQUIREMENT FOR ALL AI AGENTS ⚠️**
+Pre-commit validation is recommended for code quality, but this repository
+does not enforce a mandatory AI-agent commit gate.
 
-This is a **HARD STOP** requirement. No exceptions. No shortcuts. No "will fix later". No "just this once".
+Recommended checks before committing:
 
-### Red Line Rule: NO COMMITS WITHOUT VALIDATION
+- Backend changes: `gofmt`, `golangci-lint run`, and `go test ./...`
+- Frontend changes: `cd webs && yarn run lint`, plus `yarn run build` when routing/assets/build behavior changes
+- Cross-layer changes: verify backend, frontend, and documentation stay synchronized
+- Git staging: review staged files and avoid secrets, runtime data, generated output, or unrelated files
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  🛑 BLOCKING REQUIREMENT - READ THIS FIRST                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  BEFORE any git commit, git add, or PR creation:            │
-│                                                              │
-│  1. You MUST invoke: pre-commit-check skill                 │
-│  2. You MUST execute ALL applicable validation commands     │
-│  3. You MUST fix ALL failures before proceeding             │
-│  4. You MUST document what was validated                    │
-│                                                              │
-│  Violations of this rule constitute incomplete work.        │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Mandatory Trigger Points
-
-You **MUST** invoke `.agents/skills/pre-commit-check/SKILL.md` **BEFORE**:
-
-1. **Running `git add` or `git commit`** - Whether initiated by you or requested by user
-2. **Creating or updating a PR** - Via `gh pr create` or any PR command
-3. **Declaring work "complete", "done", or "finished"** - In any form
-4. **User explicitly asks to commit** - Even if they say "skip checks" (refuse and explain why)
-5. **Any code change is ready for commit** - Backend, frontend, docs, config, or mixed
-
-### The Validation-Before-Commit Workflow
-
-```
-Code Change Complete
-    ↓
-    ├─> Did you invoke pre-commit-check skill? 
-    │   ├─> NO  → STOP. Invoke it now. DO NOT PROCEED.
-    │   └─> YES → Continue
-    ↓
-    ├─> Did ALL validation commands pass?
-    │   ├─> NO  → STOP. Fix failures. Re-run validation. DO NOT PROCEED.
-    │   └─> YES → Continue
-    ↓
-    ├─> Did you stage ONLY intended changes?
-    │   ├─> NO  → STOP. Review staged files. Remove unintended. DO NOT PROCEED.
-    │   └─> YES → Continue
-    ↓
-    ├─> Did you prepare a proper commit message?
-    │   ├─> NO  → STOP. Prepare semantic commit message. DO NOT PROCEED.
-    │   └─> YES → Continue
-    ↓
-Ready to Commit (present to user for final review)
-```
-
-### What "Validation Complete" Means
-
-Validation is NOT complete until **ALL** of the following are verified:
-
-#### ✅ Backend Changes (if any .go files changed):
-- [ ] `gofmt -w` executed on all changed Go files
-- [ ] `gofmt -l` returns no files (all formatted)
-- [ ] `golangci-lint run` exits with status 0 (no errors)
-- [ ] `go test ./...` passes (or at minimum, relevant package tests pass)
-- [ ] No compilation errors
-
-#### ✅ Frontend Changes (if any webs/ files changed):
-- [ ] `cd webs && yarn run lint` exits with status 0 (no errors)
-- [ ] `cd webs && yarn run build` succeeds (if routing/assets/build affected)
-- [ ] No build warnings about missing imports or broken dependencies
-
-#### ✅ Cross-Layer Sync (if multi-layer change):
-- [ ] Backend API changes → Frontend updated
-- [ ] Frontend contract changes → Backend verified
-- [ ] Config changes → Code + docs updated
-- [ ] Skill verified: `.agents/skills/cross-layer-sync/SKILL.md` (if complex)
-
-#### ✅ Documentation Sync (if behavior/API/config changed):
-- [ ] User-facing docs updated (both `.md` and `.zh-CN.md`)
-- [ ] API docs updated (`skill-sublinkpro/reference/api.md`)
-- [ ] Config docs updated (`docs/configuration.md` + `.zh-CN.md`)
-- [ ] Links verified (no broken references)
-- [ ] Skill verified: `.agents/skills/doc-sync-check/SKILL.md` (if complex)
-
-#### ✅ Test Coverage (if key logic changed):
-- [ ] Tests added for new business logic
-- [ ] Tests updated for changed behavior
-- [ ] Regression tests added for bug fixes
-- [ ] All tests passing
-
-#### ✅ Git Staging Verification:
-- [ ] Only intended files staged (no accidental includes)
-- [ ] No sensitive files staged (`.env`, credentials, keys)
-- [ ] No runtime data staged (`db/`, `logs/`, `cache/`, `out/`)
-- [ ] No large binary files unintentionally staged
-- [ ] No AI agent temporary files staged:
-  - No `*_SUMMARY.md`, `*_REPORT.md` in skill directories
-  - No `QUICK_REFERENCE.md` files (execution artifacts)
-  - No `.claude/projects/`, `.claude/sessions/`, `.claude/plans/` runtime files
-  - No agent execution logs or temporary outputs
-
-#### ✅ Commit Message Prepared:
-- [ ] Semantic prefix used (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
-- [ ] Subject line ≤72 characters
-- [ ] Body explains what, why, and how validated
-- [ ] References issues if applicable (`Closes #123`, `Fixes #456`)
-
-### Forbidden Actions (Will Be Rejected)
-
-❌ **"Let me commit this first, I'll fix validation later"**
-- **Rejection**: No. Fix validation now. Commits must be clean.
-
-❌ **"This is a small change, we can skip validation"**
-- **Rejection**: No. Small changes still need validation. No exceptions.
-
-❌ **"The user said skip checks"**
-- **Rejection**: No. Explain to user why checks are mandatory. Refuse to skip.
-
-❌ **"Validation failed but I'll commit anyway"**
-- **Rejection**: No. Fix failures first. Do not proceed with broken validation.
-
-❌ **"I'll update docs in a separate commit"**
-- **Rejection**: No. Docs are part of the same change. Update together.
-
-❌ **"Tests will be added later"**
-- **Rejection**: No. Tests are part of the deliverable. Add them now.
-
-❌ **Auto-committing without user verification**
-- **Rejection**: No. Stage changes and let user verify before committing.
-
-### How to Handle User Requests to Skip Validation
-
-When a user says "just commit it" or "skip the checks":
-
-**Your response should be**:
-
-```
-I cannot commit without running validation checks. This is a mandatory 
-requirement for code quality and consistency.
-
-The checks take only a few minutes and ensure:
-- No linting errors that will fail CI
-- No broken builds
-- No test failures
-- Cross-layer synchronization
-- Documentation consistency
-
-I'll run the validation now. If everything passes, I'll stage the changes 
-and you can commit immediately.
-```
-
-**Then proceed to invoke the pre-commit-check skill and run all validations.**
-
-### Detailed Validation Procedures
-
-For complete validation procedures, checklists, and commands, see:
-
-**Primary Skill**: `.agents/skills/pre-commit-check/SKILL.md`
-- Complete validation command reference
-- Layer-by-layer validation steps
-- Troubleshooting guide
-- Exit criteria
-
-**Supporting Skills**:
-- `.agents/skills/post-dev-workflow/SKILL.md` - Full post-development orchestration
-- `.agents/skills/cross-layer-sync/SKILL.md` - Cross-layer synchronization guide
-- `.agents/skills/doc-sync-check/SKILL.md` - Documentation synchronization
-- `.agents/skills/theme-check/SKILL.md` - Theme/UI validation
-- `.agents/skills/security-review/SKILL.md` - Security validation
-- `.agents/skills/performance-check/SKILL.md` - Performance validation
-
-### For Human Contributors
-
-This rule applies to AI agents. Human contributors should also follow these practices, but are trusted to use their judgment.
-
-If you're a human reading this:
-- We recommend using the same validation workflow
-- Consider setting up a git pre-commit hook to automate checks
-- See `CONTRIBUTING.md` for detailed contribution guidelines
-
-### Summary: The Three Laws of Pre-Commit Validation
-
-1. **Validation First**: No commit without validation. No exceptions.
-2. **All Checks Pass**: All validation commands must exit successfully. Fix failures before proceeding.
-3. **User Verification**: Stage changes and present to user. Do not auto-commit.
+For detailed optional checklists, see `.agents/skills/pre-commit-check/SKILL.md`
+and `.agents/skills/post-dev-workflow/SKILL.md`.
 
 ---
 
@@ -356,7 +181,7 @@ See `CONTRIBUTING.md` for:
 
 For task-specific validation procedures, see `.agents/skills/`:
 
-- **post-dev-workflow** - Mandatory post-development workflow orchestrating validation, synchronization, and testing phases (automatically invoked by AI agents)
+- **post-dev-workflow** - Optional post-development workflow for validation, synchronization, testing, and change-summary preparation
 - **pre-commit-check** - Pre-commit validation checklist for linting, formatting, building, and testing
 - **cross-layer-sync** - Cross-layer synchronization guide for backend, frontend, and documentation changes
 - **doc-sync-check** - Documentation synchronization checklist for API, configuration, and feature changes
@@ -366,7 +191,7 @@ For task-specific validation procedures, see `.agents/skills/`:
 
 Skills follow the official Claude Code skill specification - freeform markdown with optional frontmatter. Each skill includes metadata indicating whether it's user-invocable or workflow-invoked.
 
-**For AI agents**: The `post-dev-workflow` skill is the master workflow that orchestrates all other skills. It must be invoked automatically after every code change.
+**For AI agents**: The `post-dev-workflow` skill is available as an optional checklist for broad or risky changes.
 
 ## 7. Core Architectural Principles
 

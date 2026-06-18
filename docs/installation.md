@@ -19,8 +19,8 @@ Create `docker-compose.yml`:
 ```yaml
 services:
   sublinkpro:
-    # image: zerodeng/sublink-pro:dev # Development version, for trying new features
-    image: zerodeng/sublink-pro # Stable version
+    # image: ghcr.io/zephonx/sublinkpro:dev # Development version, for trying new features
+    image: ghcr.io/zephonx/sublinkpro # Stable version
     container_name: sublinkpro
     ports:
       - "8000:8000"
@@ -36,7 +36,7 @@ Optional Sub-Store sidecar for expanded subscription output formats:
 ```yaml
 services:
   sublinkpro:
-    image: zerodeng/sublink-pro
+    image: ghcr.io/zephonx/sublinkpro
     container_name: sublinkpro
     ports:
       - "8000:8000"
@@ -57,10 +57,6 @@ services:
 
 Keep the Sub-Store service inside the Compose network and do not publish its port unless you protect it separately. After both containers start, sign in and open **Application Settings -> Sub-Store** to enable the sidecar, set the base URL such as `http://substore:3000`, choose allowed output targets, and test the connection. Sub-Store integration is managed from that page, not through environment variables.
 
-To expose the service through Cloudflare Tunnel, start the instance first, then open **Application Settings -> Cloudflare Tunnel**, enter the token, and start it. When auto connect is enabled, the Tunnel connects when the service starts. See [Cloudflare Tunnel remote access](features/cloudflare-tunnel.md) for the full flow.
-
-The official Docker image includes `cloudflared`. Non Docker deployments need `cloudflared` installed first according to Cloudflare's official documentation.
-
 Start the service:
 
 ```bash
@@ -79,7 +75,7 @@ docker run --name sublinkpro -p 8000:8000 \
   -v $PWD/db:/app/db \
   -v $PWD/template:/app/template \
   -v $PWD/logs:/app/logs \
-  -d zerodeng/sublink-pro
+  -d ghcr.io/zephonx/sublinkpro
 ```
 
 </details>
@@ -92,7 +88,7 @@ docker run --name sublinkpro -p 8000:8000 \
   -v $PWD/db:/app/db \
   -v $PWD/template:/app/template \
   -v $PWD/logs:/app/logs \
-  -d zerodeng/sublink-pro:dev
+  -d ghcr.io/zephonx/sublinkpro:dev
 ```
 
 </details>
@@ -165,14 +161,14 @@ docker stop sublinkpro
 docker rm sublinkpro
 
 # Pull the latest image
-docker pull zerodeng/sublink-pro
+docker pull ghcr.io/zephonx/sublinkpro
 
 # Start the container again with the same parameters used during installation
 docker run --name sublinkpro -p 8000:8000 \
   -v $PWD/db:/app/db \
   -v $PWD/template:/app/template \
   -v $PWD/logs:/app/logs \
-  -d zerodeng/sublink-pro
+  -d ghcr.io/zephonx/sublinkpro
 
 # Optional: clean old images
 docker image prune -f
@@ -208,7 +204,7 @@ Add the Watchtower service to your `docker-compose.yml`:
 ```yaml
 services:
   sublinkpro:
-    image: zerodeng/sublink-pro
+    image: ghcr.io/zephonx/sublinkpro
     container_name: sublinkpro
     ports:
       - "8000:8000"
