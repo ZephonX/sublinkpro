@@ -52,6 +52,7 @@ func setupClientsAPITestDB(t *testing.T) {
 		&models.Node{},
 		&models.SubcriptionNode{},
 		&models.SubcriptionGroup{},
+		&models.SubcriptionAirport{},
 		&models.SubcriptionScript{},
 		&models.SubscriptionShare{},
 		&models.SubscriptionChainRule{},
@@ -85,6 +86,8 @@ func setupClientsAPITestDB(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
+		// 等待在飞的异步访问统计写入完成，避免其在拆库后解引用 nil 的 database.DB。
+		models.WaitForPendingAccessRecords()
 		testGetClientAfterResolveSubscriptionNameHook = oldHook
 		database.DB = oldDB
 		database.Dialect = oldDialect

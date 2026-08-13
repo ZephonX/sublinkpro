@@ -22,6 +22,8 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Tooltip from '@mui/material/Tooltip';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { getNodeDisplayName } from 'utils/nodeDisplayName';
 
 // icons
@@ -41,8 +43,8 @@ import NodePreviewCard from './NodePreviewCard';
 import NodePreviewDetailsPanel from './NodePreviewDetailsPanel';
 import IPDetailsDialog from 'components/IPDetailsDialog';
 import Alert from '@mui/material/Alert';
-import { AlertTitle } from '@mui/material';
 import { formatDateTime } from 'i18n/locales';
+import { getCountryDisplay } from '../../../utils/countryDisplay';
 
 const BATCH_SIZE = 100;
 
@@ -53,6 +55,9 @@ const buildStatCardSx = (theme, color, clickable = false) => ({
   borderRadius: 2,
   boxShadow: theme.shadows[1],
   cursor: clickable ? 'pointer' : 'default',
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
   transition: 'all 0.2s ease',
   '&:hover': clickable
     ? {
@@ -64,6 +69,180 @@ const buildStatCardSx = (theme, color, clickable = false) => ({
         borderColor: alpha(color, 0.24)
       }
 });
+
+const buildStatCardContentSx = (isMobile) => ({
+  p: isMobile ? 1.25 : 1.5,
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  '&:last-child': { pb: isMobile ? 1.25 : 1.5 }
+});
+
+const normalizeCountryKey = (country) => {
+  const trimmed = String(country || '').trim();
+  return trimmed || 'unknown';
+};
+
+const sortDistributionItems = (sortMode) => (a, b) => {
+  if (a.key === 'unknown' && b.key !== 'unknown') return 1;
+  if (b.key === 'unknown' && a.key !== 'unknown') return -1;
+  const primaryKey = sortMode === 'ips' ? 'uniqueIpCount' : 'count';
+  const secondaryKey = sortMode === 'ips' ? 'count' : 'uniqueIpCount';
+  if (b[primaryKey] !== a[primaryKey]) return b[primaryKey] - a[primaryKey];
+  if (b[secondaryKey] !== a[secondaryKey]) return b[secondaryKey] - a[secondaryKey];
+  return a.label.localeCompare(b.label);
+};
+
+const buildPreviewDistributions = (nodes, t, sortMode) => {
+  const countryMap = new Map();
+  const ipMap = new Map();
+  const totalNodes = nodes.length;
+
+  nodes.forEach((node) => {
+    const countryKey = normalizeCountryKey(node.LinkCountry);
+    const countryDisplay = getCountryDisplay(countryKey === 'unknown' ? '' : countryKey, { unknownLabel: t('common.unknown') });
+    const landingIP = String(node.LandingIP || '').trim();
+
+    if (!countryMap.has(countryKey)) {
+      countryMap.set(countryKey, {
+        key: countryKey,
+        label: countryDisplay.label,
+        flag: countryDisplay.flag,
+        count: 0,
+        ipSet: new Set(),
+        uniqueIpCount: 0
+      });
+    }
+
+    const countryItem = countryMap.get(countryKey);
+    countryItem.count += 1;
+    if (landingIP) {
+      countryItem.ipSet.add(landingIP);
+      if (!ipMap.has(landingIP)) {
+        ipMap.set(landingIP, { key: landingIP, label: landingIP, count: 0, uniqueIpCount: 0 });
+      }
+      ipMap.get(landingIP).count += 1;
+    }
+  });
+
+  const totalIPs = ipMap.size;
+  const metricTotal = sortMode === 'ips' ? totalIPs : totalNodes;
+  const countryDistribution = Array.from(countryMap.values())
+    .map((item) => {
+      const uniqueIpCount = item.ipSet.size;
+      const metricValue = sortMode === 'ips' ? uniqueIpCount : item.count;
+      return {
+        ...item,
+        uniqueIpCount,
+        metricValue,
+        percent: metricTotal > 0 ? Math.round((metricValue / metricTotal) * 100) : 0
+      };
+    })
+    .sort(sortDistributionItems(sortMode));
+
+  return {
+    countryDistribution,
+    countryCount: countryMap.size,
+    ipCount: ipMap.size
+  };
+};
+
+const DistributionPanel = ({ title, summary, items, emptyText, accentColor, renderMeta, maxListHeight }) => {
+  const theme = useTheme();
+
+  return (
+    <Box
+      sx={{
+        p: 1.25,
+        height: '100%',
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: alpha(accentColor, 0.2),
+        bgcolor: 'background.paper',
+        boxShadow: theme.shadows[1]
+      }}
+    >
+      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} mb={1}>
+        <Typography variant="caption" fontWeight={700} color="text.primary">
+          {title}
+        </Typography>
+        <Chip
+          size="small"
+          label={summary}
+          variant="outlined"
+          sx={{ height: 20, fontSize: 10, color: accentColor, borderColor: alpha(accentColor, 0.35) }}
+        />
+      </Stack>
+
+      {items.length === 0 ? (
+        <Typography variant="caption" color="text.secondary">
+          {emptyText}
+        </Typography>
+      ) : (
+        <Stack
+          spacing={0.85}
+          sx={{
+            maxHeight: maxListHeight,
+            overflow: 'auto',
+            pr: 0.5,
+            scrollbarWidth: 'thin',
+            '&::-webkit-scrollbar': { width: 6 },
+            '&::-webkit-scrollbar-thumb': {
+              borderRadius: 999,
+              bgcolor: alpha(accentColor, 0.32)
+            }
+          }}
+        >
+          {items.map((item) => (
+            <Box key={item.key}>
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
+                {item.flag && <Typography sx={{ fontSize: 14, lineHeight: 1 }}>{item.flag}</Typography>}
+                <Tooltip title={item.label} placement="top" arrow>
+                  <Typography variant="caption" color="text.primary" fontWeight={600} noWrap sx={{ flex: 1, minWidth: 0 }}>
+                    {item.label}
+                  </Typography>
+                </Tooltip>
+                <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, fontSize: 10 }}>
+                  {renderMeta(item)}
+                </Typography>
+              </Stack>
+              <Box sx={{ mt: 0.4, height: 5, borderRadius: 999, bgcolor: alpha(accentColor, 0.12), overflow: 'hidden' }}>
+                <Box
+                  sx={{ width: `${Math.min(item.percent, 100)}%`, height: '100%', borderRadius: 999, bgcolor: alpha(accentColor, 0.75) }}
+                />
+              </Box>
+            </Box>
+          ))}
+        </Stack>
+      )}
+    </Box>
+  );
+};
+
+DistributionPanel.propTypes = {
+  title: PropTypes.string.isRequired,
+  summary: PropTypes.string.isRequired,
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      key: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+      flag: PropTypes.string,
+      count: PropTypes.number.isRequired,
+      uniqueIpCount: PropTypes.number,
+      metricValue: PropTypes.number,
+      percent: PropTypes.number.isRequired
+    })
+  ).isRequired,
+  emptyText: PropTypes.string.isRequired,
+  accentColor: PropTypes.string.isRequired,
+  renderMeta: PropTypes.func.isRequired,
+  maxListHeight: PropTypes.oneOfType([PropTypes.number, PropTypes.object])
+};
+
+DistributionPanel.defaultProps = {
+  maxListHeight: 220
+};
 
 const formatBytes = (bytes) => {
   if (bytes === 0) return '0 B';
@@ -91,12 +270,18 @@ export default function NodePreviewDialog({ open, loading, data, tagColorMap, on
   const [ipDialogOpen, setIpDialogOpen] = useState(false);
   const [selectedIP, setSelectedIP] = useState('');
   const [displayCount, setDisplayCount] = useState(BATCH_SIZE);
-  const [statsExpanded, setStatsExpanded] = useState(true);
+  const [statsExpanded, setStatsExpanded] = useState(false);
+  const [distributionExpanded, setDistributionExpanded] = useState(false);
+  const [distributionSortMode, setDistributionSortMode] = useState('nodes');
 
   useEffect(() => {
     if (!open) {
       setDisplayCount(BATCH_SIZE);
       setSearchText('');
+    } else {
+      setStatsExpanded(false);
+      setDistributionExpanded(false);
+      setDistributionSortMode('nodes');
     }
   }, [open]);
 
@@ -131,7 +316,10 @@ export default function NodePreviewDialog({ open, loading, data, tagColorMap, on
         delayPassCount: 0,
         speedPassCount: 0,
         lowestDelayNode: null,
-        highestSpeedNode: null
+        highestSpeedNode: null,
+        countryDistribution: [],
+        countryCount: 0,
+        ipCount: 0
       };
     }
 
@@ -167,13 +355,16 @@ export default function NodePreviewDialog({ open, loading, data, tagColorMap, on
       highestSpeedNode = speedPassNodes.reduce((max, node) => (node.Speed > max.Speed ? node : max));
     }
 
+    const distributions = buildPreviewDistributions(nodes, t, distributionSortMode);
+
     return {
       delayPassCount: delayPassNodes.length,
       speedPassCount: speedPassNodes.length,
       lowestDelayNode,
-      highestSpeedNode
+      highestSpeedNode,
+      ...distributions
     };
-  }, [data?.Nodes]);
+  }, [data?.Nodes, distributionSortMode, t]);
 
   const hasMore = displayCount < filteredNodes.length;
 
@@ -319,16 +510,27 @@ export default function NodePreviewDialog({ open, loading, data, tagColorMap, on
         <DialogContent sx={{ p: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <Box
             sx={{
-              px: 3,
-              py: 2,
+              px: isMobile ? 1.5 : 3,
+              py: 1,
               borderBottom: '1px solid',
               borderColor: 'divider',
               bgcolor: 'background.default',
               flexShrink: 0
             }}
           >
-            <Alert severity="warning" variant="outlined">
-              <AlertTitle>{t('subscriptions.preview.noticeTitle')}</AlertTitle>
+            <Alert
+              severity="warning"
+              variant="outlined"
+              sx={{
+                py: 0.5,
+                alignItems: 'center',
+                '& .MuiAlert-icon': { py: 0.25 },
+                '& .MuiAlert-message': { py: 0.25 }
+              }}
+            >
+              <Typography component="span" fontWeight={700} sx={{ mr: 1 }}>
+                {t('subscriptions.preview.noticeTitle')}
+              </Typography>
               {t('subscriptions.preview.noticeText')}
             </Alert>
           </Box>
@@ -412,9 +614,9 @@ export default function NodePreviewDialog({ open, loading, data, tagColorMap, on
 
               <Collapse in={statsExpanded} timeout="auto">
                 <Grid container spacing={isMobile ? 1 : 1.5}>
-                  <Grid item xs={6} sm={3}>
+                  <Grid item xs={6} sm={3} sx={{ display: 'flex' }}>
                     <Card elevation={0} sx={buildStatCardSx(theme, theme.palette.success.main)}>
-                      <CardContent sx={{ p: isMobile ? 1.25 : 1.5, '&:last-child': { pb: isMobile ? 1.25 : 1.5 } }}>
+                      <CardContent sx={buildStatCardContentSx(isMobile)}>
                         <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
                           <AccessTimeIcon sx={{ fontSize: 16, color: theme.palette.success.main }} />
                           <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ fontSize: isMobile ? 10 : 11 }}>
@@ -431,9 +633,9 @@ export default function NodePreviewDialog({ open, loading, data, tagColorMap, on
                     </Card>
                   </Grid>
 
-                  <Grid item xs={6} sm={3}>
+                  <Grid item xs={6} sm={3} sx={{ display: 'flex' }}>
                     <Card elevation={0} sx={buildStatCardSx(theme, theme.palette.info.main)}>
-                      <CardContent sx={{ p: isMobile ? 1.25 : 1.5, '&:last-child': { pb: isMobile ? 1.25 : 1.5 } }}>
+                      <CardContent sx={buildStatCardContentSx(isMobile)}>
                         <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
                           <SpeedIcon sx={{ fontSize: 16, color: theme.palette.info.main }} />
                           <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ fontSize: isMobile ? 10 : 11 }}>
@@ -450,13 +652,13 @@ export default function NodePreviewDialog({ open, loading, data, tagColorMap, on
                     </Card>
                   </Grid>
 
-                  <Grid item xs={6} sm={3}>
+                  <Grid item xs={6} sm={3} sx={{ display: 'flex' }}>
                     <Card
                       elevation={0}
                       onClick={() => nodeStats.lowestDelayNode && handleViewDetails(nodeStats.lowestDelayNode)}
                       sx={buildStatCardSx(theme, theme.palette.warning.main, Boolean(nodeStats.lowestDelayNode))}
                     >
-                      <CardContent sx={{ p: isMobile ? 1.25 : 1.5, '&:last-child': { pb: isMobile ? 1.25 : 1.5 } }}>
+                      <CardContent sx={buildStatCardContentSx(isMobile)}>
                         <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
                           <AccessTimeIcon sx={{ fontSize: 16, color: theme.palette.warning.main }} />
                           <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ fontSize: isMobile ? 10 : 11 }}>
@@ -494,13 +696,13 @@ export default function NodePreviewDialog({ open, loading, data, tagColorMap, on
                     </Card>
                   </Grid>
 
-                  <Grid item xs={6} sm={3}>
+                  <Grid item xs={6} sm={3} sx={{ display: 'flex' }}>
                     <Card
                       elevation={0}
                       onClick={() => nodeStats.highestSpeedNode && handleViewDetails(nodeStats.highestSpeedNode)}
                       sx={buildStatCardSx(theme, theme.palette.primary.main, Boolean(nodeStats.highestSpeedNode))}
                     >
-                      <CardContent sx={{ p: isMobile ? 1.25 : 1.5, '&:last-child': { pb: isMobile ? 1.25 : 1.5 } }}>
+                      <CardContent sx={buildStatCardContentSx(isMobile)}>
                         <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
                           <SpeedIcon sx={{ fontSize: 16, color: theme.palette.primary.main }} />
                           <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ fontSize: isMobile ? 10 : 11 }}>
@@ -541,6 +743,106 @@ export default function NodePreviewDialog({ open, loading, data, tagColorMap, on
             </Box>
           )}
 
+          {!loading && data?.Nodes && data.Nodes.length > 0 && (
+            <Box
+              sx={{
+                px: isMobile ? 1.5 : 3,
+                py: 1.5,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.default',
+                flexShrink: 0,
+                boxShadow: `inset 0 -1px 0 ${alpha(theme.palette.divider, 0.45)}`
+              }}
+            >
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                onClick={() => setDistributionExpanded(!distributionExpanded)}
+                sx={{
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  mb: distributionExpanded ? 1.5 : 0,
+                  transition: 'margin 0.2s ease'
+                }}
+              >
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flexWrap: 'wrap' }}>
+                  <FilterListIcon sx={{ fontSize: 18, color: theme.palette.secondary.main }} />
+                  <Typography variant="subtitle2" fontWeight={600} color="text.primary">
+                    {t('subscriptions.preview.stats.distributionTitle')}
+                  </Typography>
+                  <Chip
+                    label={t('subscriptions.preview.stats.distributionSummary', {
+                      countries: nodeStats.countryCount,
+                      ips: nodeStats.ipCount
+                    })}
+                    size="small"
+                    color="secondary"
+                    variant="outlined"
+                    sx={{ fontSize: 10, height: 20 }}
+                  />
+                  {distributionExpanded && (
+                    <ToggleButtonGroup
+                      exclusive
+                      size="small"
+                      value={distributionSortMode}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={(event, nextMode) => {
+                        event.stopPropagation();
+                        if (nextMode) setDistributionSortMode(nextMode);
+                      }}
+                      sx={{
+                        ml: 0.5,
+                        '& .MuiToggleButton-root': {
+                          px: 1,
+                          py: 0.15,
+                          fontSize: 10,
+                          lineHeight: 1.4,
+                          color: 'text.secondary',
+                          borderColor: alpha(theme.palette.secondary.main, 0.25),
+                          '&.Mui-selected': {
+                            color: theme.palette.secondary.main,
+                            bgcolor: alpha(theme.palette.secondary.main, 0.12)
+                          }
+                        }
+                      }}
+                    >
+                      <ToggleButton value="nodes">{t('subscriptions.preview.stats.sortByNodes')}</ToggleButton>
+                      <ToggleButton value="ips">{t('subscriptions.preview.stats.sortByIps')}</ToggleButton>
+                    </ToggleButtonGroup>
+                  )}
+                </Stack>
+                <IconButton size="small" sx={{ p: 0.5 }}>
+                  {distributionExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                </IconButton>
+              </Stack>
+
+              <Collapse in={distributionExpanded} timeout="auto">
+                <DistributionPanel
+                  title={t('subscriptions.preview.stats.countryDistribution')}
+                  summary={t('subscriptions.preview.stats.countryCount', { count: nodeStats.countryCount })}
+                  items={nodeStats.countryDistribution}
+                  emptyText={t('subscriptions.preview.stats.noCountryData')}
+                  accentColor={theme.palette.secondary.main}
+                  maxListHeight={{ xs: 180, sm: 220, md: 240 }}
+                  renderMeta={(item) =>
+                    t(
+                      distributionSortMode === 'ips'
+                        ? 'subscriptions.preview.stats.countryDistributionMetaByIps'
+                        : 'subscriptions.preview.stats.countryDistributionMetaByNodes',
+                      {
+                        nodes: item.count,
+                        ips: item.uniqueIpCount,
+                        percent: item.percent
+                      }
+                    )
+                  }
+                />
+              </Collapse>
+            </Box>
+          )}
+
           <Box
             ref={contentRef}
             onScroll={handleScroll}
@@ -564,15 +866,15 @@ export default function NodePreviewDialog({ open, loading, data, tagColorMap, on
                 </Box>
 
                 {hasMore && (
-                  <Box sx={{ textAlign: 'center', py: 2, mt: 1 }}>
-                    <Button variant="outlined" size="small" onClick={loadMore} startIcon={<ExpandMoreIcon />} sx={{ borderRadius: 2 }}>
-                      {t('subscriptions.preview.loadMore', { displayed: displayedNodes.length, total: filteredNodes.length })}
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                    <Button variant="outlined" onClick={loadMore} endIcon={<ExpandMoreIcon />} size="small">
+                      {t('subscriptions.preview.loadMore', { displayed: displayCount, total: filteredNodes.length })}
                     </Button>
                   </Box>
                 )}
 
-                {!hasMore && filteredNodes.length > BATCH_SIZE && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', py: 2 }}>
+                {!hasMore && displayedNodes.length > BATCH_SIZE && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mt: 2 }}>
                     {t('subscriptions.preview.allLoaded', { count: filteredNodes.length })}
                   </Typography>
                 )}

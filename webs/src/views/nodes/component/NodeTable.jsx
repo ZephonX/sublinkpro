@@ -74,9 +74,9 @@ export default function NodeTable({
   const tokens = getNodeThemeTokens(theme, isDark);
   const isSelected = (node) => selectedNodes.some((n) => n.ID === node.ID);
   const actionColumnSurface = tokens.palette.background.paper;
-  const actionColumnHoverSurface = tokens.isDark ? tokens.palette.dark.dark : tokens.palette.grey[50];
-  const actionColumnSelectedSurface = tokens.isDark ? tokens.palette.dark.main : tokens.palette.primary.light;
-  const actionColumnSelectedHoverSurface = tokens.isDark ? tokens.palette.dark.main : tokens.palette.primary.light;
+  const rowHoverSurface = tokens.isDark ? tokens.palette.dark.dark : tokens.palette.grey[50];
+  const rowSelectedSurface = tokens.isDark ? tokens.palette.dark.main : tokens.palette.primary.light;
+  const rowSelectedHoverSurface = rowSelectedSurface;
 
   // 列宽调整状态
   const [resizing, setResizing] = useState(null);
@@ -205,17 +205,17 @@ export default function NodeTable({
   };
 
   const getTableRowSx = (selected = false) => ({
-    bgcolor: selected ? tokens.selectedSurface : 'transparent',
+    bgcolor: selected ? rowSelectedSurface : 'transparent',
     cursor: 'pointer',
     transition: 'background-color 0.2s ease',
     '&:hover': {
-      bgcolor: selected ? tokens.selectedHoverSurface : tokens.hoverSurface
+      bgcolor: selected ? rowSelectedHoverSurface : rowHoverSurface
     },
     '& .MuiTableCell-root.actions-cell': {
-      backgroundColor: selected ? actionColumnSelectedSurface : actionColumnSurface
+      backgroundColor: selected ? rowSelectedSurface : actionColumnSurface
     },
     '&:hover .MuiTableCell-root.actions-cell': {
-      backgroundColor: selected ? actionColumnSelectedHoverSurface : actionColumnHoverSurface
+      backgroundColor: selected ? rowSelectedHoverSurface : rowHoverSurface
     },
     '& td, & .MuiTableCell-root': {
       borderBottomColor: tokens.softBorder

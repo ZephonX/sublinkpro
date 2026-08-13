@@ -4,11 +4,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sublink/cache"
 	"sublink/database"
 	"sublink/utils"
+	"sync"
 	"time"
 
 	"gorm.io/gorm"
@@ -101,6 +103,67 @@ func (s *SubscriptionShare) normalizeOptionalFields() {
 	} else {
 		s.LastAccessAt = normalizeOptionalTime(s.LastAccessAt)
 	}
+}
+
+func compareNaturalStrings(left, right string) int {
+	left = strings.ToLower(left)
+	right = strings.ToLower(right)
+	leftIndex, rightIndex := 0, 0
+
+	for leftIndex < len(left) && rightIndex < len(right) {
+		leftChar := left[leftIndex]
+		rightChar := right[rightIndex]
+
+		if isASCIIDigit(leftChar) && isASCIIDigit(rightChar) {
+			leftStart, rightStart := leftIndex, rightIndex
+			for leftIndex < len(left) && isASCIIDigit(left[leftIndex]) {
+				leftIndex++
+			}
+			for rightIndex < len(right) && isASCIIDigit(right[rightIndex]) {
+				rightIndex++
+			}
+
+			leftNumber := strings.TrimLeft(left[leftStart:leftIndex], "0")
+			rightNumber := strings.TrimLeft(right[rightStart:rightIndex], "0")
+			if leftNumber == "" {
+				leftNumber = "0"
+			}
+			if rightNumber == "" {
+				rightNumber = "0"
+			}
+			if len(leftNumber) != len(rightNumber) {
+				return len(leftNumber) - len(rightNumber)
+			}
+			if leftNumber != rightNumber {
+				if leftNumber < rightNumber {
+					return -1
+				}
+				return 1
+			}
+
+			leftDigitLength := leftIndex - leftStart
+			rightDigitLength := rightIndex - rightStart
+			if leftDigitLength != rightDigitLength {
+				return leftDigitLength - rightDigitLength
+			}
+			continue
+		}
+
+		if leftChar != rightChar {
+			if leftChar < rightChar {
+				return -1
+			}
+			return 1
+		}
+		leftIndex++
+		rightIndex++
+	}
+
+	return len(left) - len(right)
+}
+
+func isASCIIDigit(value byte) bool {
+	return value >= '0' && value <= '9'
 }
 
 // CreateDefaultShareForSubscription 为订阅创建默认分享链接
@@ -231,10 +294,45 @@ func GetSharesBySubscriptionID(subID int, keyword ...string) []SubscriptionShare
 	return shares
 }
 
-// GetSharesBySubscriptionIDPaginated 获取订阅的分享列表（分页，支持搜索）
-func GetSharesBySubscriptionIDPaginated(subID, page, pageSize int, keyword string) ([]SubscriptionShare, int, error) {
+// GetShareIDsByIP 根据IP地址获取访问过的分享ID列表
+func GetShareIDsByIP(ip string) []int {
+	logs := subLogsCache.GetAll()
+	shareIDMap := make(map[int]bool)
+
+	for _, log := range logs {
+		if log.IP == ip && log.ShareID > 0 {
+			shareIDMap[log.ShareID] = true
+		}
+	}
+
+	shareIDs := make([]int, 0, len(shareIDMap))
+	for id := range shareIDMap {
+		shareIDs = append(shareIDs, id)
+	}
+	return shareIDs
+}
+
+// GetSharesBySubscriptionIDPaginated 获取订阅的分享列表（分页，支持搜索、IP筛选、排序）
+func GetSharesBySubscriptionIDPaginated(subID, page, pageSize int, keyword, ipFilter, sortBy, sortOrder string) ([]SubscriptionShare, int, error) {
 	// 先从缓存获取该订阅的所有分享
 	allShares := subscriptionShareCache.GetByIndex("subscriptionID", strconv.Itoa(subID))
+
+	// IP过滤优先级最高
+	if ipFilter != "" {
+		shareIDs := GetShareIDsByIP(ipFilter)
+		shareIDSet := make(map[int]bool)
+		for _, id := range shareIDs {
+			shareIDSet[id] = true
+		}
+
+		filtered := make([]SubscriptionShare, 0)
+		for _, share := range allShares {
+			if shareIDSet[share.ID] {
+				filtered = append(filtered, share)
+			}
+		}
+		allShares = filtered
+	}
 
 	// 如果提供了搜索关键词，进行过滤
 	// 规则：名称使用模糊搜索，token使用精确匹配
@@ -252,6 +350,30 @@ func GetSharesBySubscriptionIDPaginated(subID, page, pageSize int, keyword strin
 			}
 		}
 		allShares = filtered
+	}
+
+	// 排序
+	if sortBy == "access_count" || sortBy == "name" {
+		sort.SliceStable(allShares, func(i, j int) bool {
+			if sortBy == "name" {
+				comparison := compareNaturalStrings(allShares[i].Name, allShares[j].Name)
+				if comparison == 0 {
+					comparison = allShares[i].ID - allShares[j].ID
+				}
+				if sortOrder == "desc" {
+					return comparison > 0
+				}
+				return comparison < 0
+			}
+
+			if allShares[i].AccessCount == allShares[j].AccessCount {
+				return allShares[i].ID < allShares[j].ID
+			}
+			if sortOrder == "asc" {
+				return allShares[i].AccessCount < allShares[j].AccessCount
+			}
+			return allShares[i].AccessCount > allShares[j].AccessCount
+		})
 	}
 
 	total := len(allShares)
@@ -320,13 +442,29 @@ func (s *SubscriptionShare) IsExpired() bool {
 	}
 }
 
+// accessRecordWG 跟踪在飞的异步访问统计写入，便于测试拆库前与服务优雅关闭时等待其完成。
+var accessRecordWG sync.WaitGroup
+
+// WaitForPendingAccessRecords 阻塞直到所有异步访问统计写入完成。
+// 测试在重置/关闭 database.DB 前调用；服务优雅关闭时亦可调用以避免丢失访问计数。
+func WaitForPendingAccessRecords() {
+	accessRecordWG.Wait()
+}
+
 // RecordAccess 记录一次访问，并使用数据库原子自增避免并发访问丢失计数。
 func (s *SubscriptionShare) RecordAccess() {
 	if s == nil || s.ID <= 0 {
 		return
 	}
 
-	if err := database.DB.Model(&SubscriptionShare{}).
+	// 只读取一次全局句柄：异步 goroutine 可能与测试/关闭流程并发，
+	// 若全局 database.DB 中途被重置为 nil，直接跳过，避免空指针解引用。
+	db := database.DB
+	if db == nil {
+		return
+	}
+
+	if err := db.Model(&SubscriptionShare{}).
 		Where("id = ?", s.ID).
 		Updates(map[string]any{
 			"access_count":   gorm.Expr("access_count + ?", 1),
@@ -337,7 +475,7 @@ func (s *SubscriptionShare) RecordAccess() {
 	}
 
 	var updated SubscriptionShare
-	if err := database.DB.First(&updated, s.ID).Error; err != nil {
+	if err := db.First(&updated, s.ID).Error; err != nil {
 		utils.Warn("刷新订阅分享访问缓存失败: %v", err)
 		return
 	}
@@ -352,7 +490,9 @@ func (s *SubscriptionShare) RecordAccessAsync() {
 	}
 
 	shareID := s.ID
+	accessRecordWG.Add(1)
 	go func() {
+		defer accessRecordWG.Done()
 		share := SubscriptionShare{ID: shareID}
 		share.RecordAccess()
 	}()

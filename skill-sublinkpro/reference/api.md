@@ -199,16 +199,16 @@ Base: `/api/v1/subcription` (note the spelling — missing the second "s").
 
 ### Add Subscription
 **POST** `/subcription/add` — **form**
-- **Required:** `name` AND at least one of `nodeIds` (comma-separated node IDs) or `groups` (comma-separated group names).
+- **Required:** `name` AND at least one of `nodeIds` (comma-separated node IDs), `groups` (comma-separated group names), or `airports` (comma-separated airport IDs).
 - Output template: `config` = a template **filename** (the `file` value from `GET /template/get`, e.g. `clash.yaml`); empty = raw node list.
-- Other optional form fields (UpperCamel): `scripts` (comma-separated script IDs), `IPWhitelist`, `IPBlacklist`, `DelayTime`, `MinSpeed`, `CountryWhitelist`, `CountryBlacklist`, `NodeNameRule`, `NodeNamePreprocess`, `NodeNameWhitelist`, `NodeNameBlacklist`, `TagWhitelist`, `TagBlacklist`, `ProtocolWhitelist`, `ProtocolBlacklist`, `DeduplicationRule`, `RefreshUsageOnRequest`, `UpdateInterval`, `MaxFraudScore`, `OnlyResidential`, `OnlyNative`, `ResidentialType`, `IPType`, `QualityStatus`, `UnlockProvider`, `UnlockStatus`, `UnlockKeyword`, `UnlockRules`, `UnlockRuleMode`.
+- Other optional form fields (UpperCamel unless noted): `airports` (comma-separated airport IDs), `scripts` (comma-separated script IDs), `IPWhitelist`, `IPBlacklist`, `DelayTime`, `MinSpeed`, `CountryWhitelist`, `CountryBlacklist`, `NodeNameRule`, `NodeNamePreprocess`, `NodeNameWhitelist`, `NodeNameBlacklist`, `TagWhitelist`, `TagBlacklist`, `ProtocolWhitelist`, `ProtocolBlacklist`, `DeduplicationRule`, `RefreshUsageOnRequest`, `UpdateInterval`, `MaxFraudScore`, `OnlyResidential`, `OnlyNative`, `ResidentialType`, `IPType`, `QualityStatus`, `UnlockProvider`, `UnlockStatus`, `UnlockKeyword`, `UnlockRules`, `UnlockRuleMode`.
 - Name must be unique (duplicate → `订阅名称不能重复`).
 
 ### Update Subscription
 **POST** `/subcription/update` — **form**, located by `oldname` (current name). Same field set as add, plus `oldname`.
 
 ### Get Subscriptions
-**GET** `/subcription/get` (query: `?page=1&pageSize=20`). Paginated → `{items, total, ...}`; without paging → array.
+**GET** `/subcription/get` (query: `?page=1&pageSize=20`). Paginated → `{items, total, ...}`; without paging → array. Each subscription includes ordered `Nodes`, `Groups`, `Airports`, and `Scripts` relation arrays when present.
 
 ### Delete Subscription
 **DELETE** `/subcription/delete` (query: `?id=123`)
@@ -217,7 +217,7 @@ Base: `/api/v1/subcription` (note the spelling — missing the second "s").
 **POST** `/subcription/copy` (query: `?id=123`)
 
 ### Sort Nodes
-**POST** `/subcription/sort` — **JSON** `{"ID":123, "NodeSort":[{"ID":1,"Name":"...","Sort":0,"IsGroup":false}, ...]}`
+**POST** `/subcription/sort` — **JSON** `{"ID":123, "NodeSort":[{"ID":1,"Name":"...","Sort":0,"IsGroup":false,"IsAirport":false}, ...]}`. Airport sort items use the airport ID and `"IsAirport":true`; group sort items use `Name` and `"IsGroup":true`.
 
 ### Batch Sort
 **POST** `/subcription/batch-sort` — **JSON** `{"ID":123, "sortBy":"delay", "sortOrder":"asc"}` (`sortBy`: source|name|protocol|delay|speed|country)
@@ -229,6 +229,7 @@ Base: `/api/v1/subcription` (note the spelling — missing the second "s").
   "SubscriptionID": 123,            // either preview a saved sub by id...
   "NodeIDs": [1,2,3], "NodeSorts": [0,1,2],   // ...or preview an unsaved form
   "Groups": ["US"], "GroupSorts": [0],
+  "AirportIDs": [10], "AirportSorts": [2],
   "Scripts": [1],
   "DelayTime": 300, "MinSpeed": 5,
   "CountryWhitelist": "", "CountryBlacklist": "",
@@ -273,7 +274,7 @@ Other supported variables include `$Name`, `$LinkName`, `$Group`, `$Source`, `$P
 Base: `/api/v1/shares`
 
 ### Get Shares (for a subscription)
-**GET** `/shares/get` (query: `?subId=123`) — `subId` is **required**.
+**GET** `/shares/get` (query: `?subId=123`) — `subId` is **required**. Optional paginated filters: `page`, `pageSize`, `keyword`, `ipFilter`, `sortBy`, `sortOrder`. `sortBy` accepts `access_count` or natural numeric-aware `name`; `sortOrder` accepts `asc` or `desc`.
 
 ### Add Share
 **POST** `/shares/add` — **JSON**
@@ -333,13 +334,193 @@ Base: `/api/v1/template`
 ### Convert Rules
 **POST** `/template/convert` — **JSON**
 
-### AI Template Editing (all JSON; require the server's AI assistant to be configured in the web UI)
-- **POST** `/template/ai/generate` — `{filename, category(default "clash"), currentText, userPrompt(required), ruleSource, useProxy, proxyLink, enableIncludeAll}`. Returns the candidate + validation.
-- **POST** `/template/ai/generate-stream` — same body; responds as **SSE** (use `--raw`). Final event `template.final`.
-- **POST** `/template/ai/validate` — `{filename, category, originalText, candidateText, ruleSource}`
-- **POST** `/template/ai/apply` — `{filename(required), oldName, category, candidateText(required), revisionHash, ruleSource, useProxy, proxyLink, enableIncludeAll}`. The `revisionHash` (from the generate response) guards against overwriting a concurrent edit.
+### AI Template Editing (edit sessions, all JSON; require the server's AI assistant to be configured in the web UI)
 
-> If `/template/ai/generate` returns an upstream/credential error, the server's AI assistant isn't configured (or its provider failed). The `/settings/ai-assistant*` config endpoints reject API-key auth (login-session only), so this must be set up in the web UI.
+The current Template AI contract is an edit-session preview flow. The model must return structured operations, not a full replacement template. The server applies those operations to the current template, validates the candidate preview, then the client can accept the preview into the editor. Accepting does **not** save the template. Save through `/template/update` after the candidate is copied into the editor.
+
+Short-lived session limits:
+
+- Session TTL: `15m`
+- Cleanup interval: `5m`
+- Max active sessions per authenticated user: `10`
+- Sessions are in memory only and are not persistent edit history
+
+#### Start Edit Session Stream
+
+**POST** `/api/v1/template/ai/edit-sessions/stream`, **SSE** (use `--raw`)
+
+Request body:
+
+```json
+{
+  "filename": "clash.yaml",
+  "category": "clash",
+  "currentText": "mixed-port: 7890\n...",
+  "userPrompt": "Add a Hong Kong auto select policy group",
+  "ruleSource": "",
+  "useProxy": false,
+  "proxyLink": "",
+  "enableIncludeAll": false
+}
+```
+
+SSE event names:
+
+- `template.edit.session.created`
+- `template.edit.model.delta`
+- `template.edit.operations.ready`
+- `template.edit.preview.validating`
+- `template.edit.preview.ready`
+- `template.edit.warning`
+- `template.edit.error`
+- `template.edit.completed`
+
+Final preview payload fields include:
+
+```json
+{
+  "sessionId": "unguessable-id",
+  "status": "preview_ready",
+  "baseHash": "sha256-or-revision-hash",
+  "candidateHash": "sha256-or-revision-hash",
+  "candidateText": "mixed-port: 7890\n...",
+  "operations": [
+    {
+      "op": "insert",
+      "anchor": "proxy-groups:\n",
+      "position": "after",
+      "newString": "  - name: HK Auto\n",
+      "description": "Add Hong Kong auto group"
+    }
+  ],
+  "validation": {
+    "errors": [],
+    "warnings": [],
+    "detectedType": "clash",
+    "protectedTokensFound": []
+  },
+  "warningFingerprint": "",
+  "expiresAt": "2026-06-24T12:15:00Z"
+}
+```
+
+`candidateText` here is the server-materialized preview after operations were applied and validated. It is not AI model output.
+
+#### Get Edit Session
+
+**GET** `/api/v1/template/ai/edit-sessions/:sessionId`
+
+Returns the current session preview state, including `sessionId`, `status`, `filename`, `category`, `baseHash`, `candidateText` when available, `operations`, `validation`, `warningFingerprint`, `createdAt`, `expiresAt`, and `lastError`.
+
+#### Accept Edit Session
+
+**POST** `/api/v1/template/ai/edit-sessions/:sessionId/accept`, **JSON**
+
+Request body:
+
+```json
+{
+  "currentText": "mixed-port: 7890\n..."
+}
+```
+
+`currentText` is optional, but clients should send the editor's current text when accepting a preview, especially after a previous accepted preview has not been saved yet. It is used only as editor base proof: when its revision hash matches the session `baseHash`, accept can proceed even if the template file on disk still contains an earlier saved version. It is not the candidate, is never persisted, and does not replace the server-built `candidateText` returned by accept.
+
+If `currentText` is absent or doesn't match the session base, the server falls back to the saved template file freshness check. If the saved file changed since the session was created, accept fails with `AI_EDIT_STALE_BASE`. Validation errors still block acceptance. Validation warnings remain in the session payload as review metadata, but clients don't send warning-related request fields when accepting.
+
+Response data:
+
+```json
+{
+  "sessionId": "unguessable-id",
+  "candidateText": "mixed-port: 7890\n...",
+  "candidateHash": "sha256-or-revision-hash",
+  "validation": {
+    "errors": [],
+    "warnings": []
+  }
+}
+```
+
+Accept verifies the owner, session expiry, `preview_ready` status, base hash freshness through either matching `currentText` or saved file content, and that validation has no errors. It returns the candidate text for the editor. It does not persist the template.
+
+#### Discard Edit Session
+
+**POST** `/api/v1/template/ai/edit-sessions/:sessionId/discard`
+
+Marks the session discarded. It does not change the template or editor content.
+
+#### Operation Schema
+
+AI output must be an operation array. Supported v1 operations are exact-match only. `match` is optional and defaults to `unique` when omitted:
+
+```json
+[
+  {
+    "op": "replace",
+    "oldString": "old exact text",
+    "newString": "new text",
+    "match": "unique",
+    "description": "optional human summary"
+  },
+  {
+    "op": "insert",
+    "anchor": "exact anchor text",
+    "position": "before",
+    "newString": "inserted text",
+    "description": "optional human summary"
+  },
+  {
+    "op": "delete",
+    "oldString": "exact text to remove",
+    "match": "all",
+    "description": "optional human summary"
+  }
+]
+```
+
+Rules:
+
+- `replace` requires non-empty `oldString`, allows any `newString`, allows optional `match` of `unique` or `all` (empty is treated as the default unique mode), and forbids `anchor` and `position`.
+- `insert` requires non-empty `anchor`, non-empty `newString`, and `position` of `before` or `after`, and forbids `oldString` and any explicit non-empty `match`. Anchors must stay exact and unique.
+- `delete` requires non-empty `oldString`, allows optional `match` of `unique` or `all` (empty is treated as the default unique mode), and forbids `newString`, `anchor`, and `position`.
+- In default `unique` mode, every target or anchor must match exactly once after line endings are normalized for matching.
+- In explicit `all` mode, `replace` and `delete` apply to every exact occurrence of `oldString`; zero occurrences still fail with `PATCH_NO_MATCH`.
+- `all` mode is intended only when the user clearly asks for all/every/全部/所有 exact occurrences. It does not enable fuzzy, regex, YAML-path, AST, or line-number matching.
+- Operation application is atomic. If one operation fails, no preview is ready.
+
+#### Error Codes
+
+Common edit-session error codes:
+
+- `AI_EDIT_INVALID_OPERATION`: operation type or fields are invalid
+- `AI_EDIT_EMPTY_OPERATIONS`: model returned no operations
+- `AI_EDIT_MALFORMED_OUTPUT`: model output was not valid contract JSON
+- `AI_EDIT_LEGACY_OUTPUT`: model tried to return legacy full-template output
+- `AI_EDIT_SESSION_LIMIT`: user has too many active sessions
+- `AI_EDIT_SESSION_NOT_FOUND`: session id doesn't exist
+- `AI_EDIT_SESSION_EXPIRED`: session expired, generate a new preview
+- `AI_EDIT_STALE_BASE`: template base changed since the session was created, or the supplied `currentText` doesn't prove the editor still matches the session base while the saved file has also changed
+- `AI_EDIT_VALIDATION_FAILED`: validation errors block acceptance
+- `PATCH_NO_MATCH`: operation target or anchor was not found
+- `PATCH_AMBIGUOUS_MATCH`: operation target or anchor matched more than once in default `unique` mode
+- `PATCH_EMPTY_TARGET`: operation target was empty
+- `PATCH_NOOP`: operation would not change content
+- `PATCH_INVALID_INSERT_POSITION`: insert position was not `before` or `after`
+- `PATCH_INVALID_MATCH_MODE`: operation used an unsupported `match` value or requested `match: "all"` for an insert at patch-application time
+
+#### Breaking Change From Legacy Full-Template Generation
+
+The old full-template AI endpoints are removed or return `AI_EDIT_LEGACY_REMOVED`:
+
+- `POST /api/v1/template/ai/generate`
+- `POST /api/v1/template/ai/generate-stream`
+- `POST /api/v1/template/ai/validate`
+- `POST /api/v1/template/ai/apply`
+
+There is no supported fallback that accepts AI-generated full-template `candidateText` as the source of truth. Clients should use `/api/v1/template/ai/edit-sessions/*` and save accepted text through the normal template save flow.
+
+> If `/api/v1/template/ai/edit-sessions/stream` returns an upstream or credential error, the server's AI assistant isn't configured, or its provider failed. The `/api/v1/settings/ai-assistant*` config endpoints reject API-key auth (login-session only), so this must be set up in the web UI.
 
 ---
 
@@ -532,9 +713,9 @@ Base: `/api/v1/settings` (write bodies are JSON unless noted; most writes are de
 
 **AI assistant (login-session only — reject API key with 403 by design):**
 - **GET** `/settings/ai-assistant`
-- **POST** `/settings/ai-assistant` (`{baseUrl, model, apiKey, temperature, maxTokens, extraHeaders}`)
+- **POST** `/settings/ai-assistant` (`{baseUrl, model, requestType, apiKey, temperature, maxTokens, extraHeaders}`; `requestType` is `responses` or `chat_completions`)
 - **POST** `/settings/ai-assistant/models`
-- **POST** `/settings/ai-assistant/test`
+- **POST** `/settings/ai-assistant/test` (accepts the same provider fields and uses `requestType` to test `/responses` or streamed `/chat/completions`)
 
 > These four configure the stored AI provider key, so they only work in a logged-in web session. An API-key call always gets 403 here — that's expected, not a bug. Configure the AI assistant once in the web UI; afterwards `/template/ai/*` works with API-key auth.
 

@@ -45,7 +45,7 @@
 - 🎨 **前端框架**：基于 [Berry Free React Material UI Admin Template](https://github.com/codedthemes/berry-free-react-admin-template)
 - ⚡ **后端技术**：Go + Gin + Gorm
 - 🔐 **默认账号**：`admin` / `123456`（请安装后务必修改）
-- 💻 **演示系统**: [https://demo.sublink.us.kg](https://demo.sublink.us.kg) 用户名：admin 密码：123456
+- 💻 **演示系统**: [https://demo.sublinkpro.dpdns.org/](https://demo.sublinkpro.dpdns.org/) 用户名：admin 密码：123456
 
 > [!WARNING]
 > ⚠️ 本项目和原项目数据库不兼容，请不要混用。
@@ -174,12 +174,15 @@ docker-compose up -d
 
 | 客户端 | 支持协议 |
 |:---|:---|
-| **v2ray** | base64 通用格式（不输出 Clash/mihomo 专属协议，如 Mieru） |
-| **clash / mihomo** | ss, ssr, trojan, vmess, vless, hy, hy2, tuic, AnyTLS, Socks5, HTTP, HTTPS, Mieru |
-| **surge** | ss, trojan, vmess, hy2, tuic, AnyTLS |
+| **v2ray** | base64 通用格式（不输出 Clash/mihomo 专属协议，如 Mieru、Snell） |
+| **clash / mihomo** | ss, ssr, trojan, vmess, vless, hy, hy2, tuic, AnyTLS, Socks5, HTTP, HTTPS, Mieru, Snell |
+| **surge** | ss, trojan, vmess, hy2, tuic, AnyTLS, Snell |
 
 > [!NOTE]
 > Mieru 当前仅支持 Clash/mihomo YAML 导入与导出。Mieru 官方存在 `mieru://` / `mierus://` 分享链接，但未定义适合逐字段编辑的通用 URL schema；SublinkPro 为原始编辑与 Clash/mihomo 导入回写使用内部可编辑形态：`mieru://username:password@server:port?...#name`，端口范围使用 `portRange=2090-2099`。v2ray 与 Surge 当前不支持 Mieru，订阅输出会跳过该协议而不是降级转换。
+
+> [!NOTE]
+> Snell 当前仅支持 Clash/mihomo 与 Surge 输出。Snell 没有官方分享链接方案，SublinkPro 为原始编辑与 Clash/mihomo、Surge 导入回写使用内部可编辑形态：`snell://server:port?psk=xxx&version=3&obfs=http&obfs-host=xxx#name`。v2ray 当前不支持 Snell，订阅输出会跳过该协议而不是降级转换。
 
 ---
 

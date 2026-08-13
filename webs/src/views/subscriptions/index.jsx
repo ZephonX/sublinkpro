@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 // material-ui
@@ -10,11 +10,16 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 import Tooltip from '@mui/material/Tooltip';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import CircularProgress from '@mui/material/CircularProgress';
 
 // icons
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CategoryIcon from '@mui/icons-material/Category';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 
 // project imports
 import MainCard from 'ui-component/cards/MainCard';
@@ -43,6 +48,8 @@ import {
 import { getTemplates } from 'api/templates';
 import { getScripts } from 'api/scripts';
 import { getTags } from 'api/tags';
+import { getShares } from 'api/shares';
+import { getAirports } from 'api/airports';
 import { buildUnlockRulesPayload, normalizeUnlockRules, setUnlockMeta } from 'views/nodes/utils';
 import { getRegisteredProtocolNames } from 'utils/protocolPresentation';
 import { getNodeDisplayName } from 'utils/nodeDisplayName';
@@ -114,6 +121,7 @@ export default function SubscriptionList() {
     selectionMode: 'nodes',
     selectedNodes: [],
     selectedGroups: [],
+    selectedAirports: [],
     selectedScripts: [],
     IPWhitelist: '',
     IPBlacklist: '',
@@ -200,14 +208,28 @@ export default function SubscriptionList() {
     return saved ? parseInt(saved, 10) : 10;
   });
   const [totalItems, setTotalItems] = useState(0);
+  const [subscriptionSearch, setSubscriptionSearch] = useState('');
+  const [shareSearchResults, setShareSearchResults] = useState([]);
+  const [shareSearching, setShareSearching] = useState(false);
+  const [shareSearchActive, setShareSearchActive] = useState(false);
+  const shareSearchRequestRef = useRef(0);
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  // 从后端获取的分组和来源选项
   const [groupOptions, setGroupOptions] = useState([]);
+  const [airportOptions, setAirportOptions] = useState([]);
   const [sourceOptions, setSourceOptions] = useState([]);
   const [tagOptions, setTagOptions] = useState([]);
   const [protocolOptions, setProtocolOptions] = useState([]);
+
+  const getAirportId = useCallback((airport) => Number(airport?.id ?? airport?.ID), []);
+  const getAirportName = useCallback((airport) => airport?.name || airport?.Name || '', []);
+  const normalizeAirportList = useCallback((data) => {
+    const items = data?.items || (Array.isArray(data) ? data : []);
+    return items
+      .map((airport) => ({ ...airport, id: Number(airport?.id ?? airport?.ID), name: airport?.name || airport?.Name || '' }))
+      .filter((airport) => Number.isInteger(airport.id) && airport.id > 0 && airport.name);
+  }, []);
 
   const buildNodeFilterParams = useCallback(
     () => ({
@@ -255,10 +277,51 @@ export default function SubscriptionList() {
     }
   }, [buildSelectorParams, hydrateSelectedNodeMap]);
 
+  const extractShareSearchKeyword = useCallback((input) => {
+    const trimmed = input.trim();
+    if (!trimmed) return '';
+
+    const tokenMatch = trimmed.match(/[?&]token=([^&\s]+)/);
+    if (tokenMatch?.[1]) return tokenMatch[1];
+
+    const pathTokenMatch = trimmed.match(/(?:^|\/)c\/([^/?&#\s]+)/);
+    return pathTokenMatch?.[1] || trimmed;
+  }, []);
+
+  const isShareLookupQuery = useCallback((input) => {
+    const trimmed = input.trim();
+    if (!trimmed) return false;
+    if (/^https?:\/\//i.test(trimmed) || trimmed.includes('/c/') || /[?&]token=/.test(trimmed)) return true;
+    return /^[A-Za-z0-9_-]{8,}$/.test(trimmed);
+  }, []);
+
+  const normalizeSubscriptionResponse = useCallback((response) => {
+    if (response.data && response.data.items !== undefined) {
+      return response.data.items || [];
+    }
+    return response.data || [];
+  }, []);
+
+  const fetchAllSubscriptionsForSearch = useCallback(async () => {
+    if (totalItems <= subscriptions.length) return subscriptions;
+    const response = await getSubscriptions({ page: 1, pageSize: Math.max(totalItems, rowsPerPage) });
+    return normalizeSubscriptionResponse(response);
+  }, [normalizeSubscriptionResponse, rowsPerPage, subscriptions, totalItems]);
+
   const refreshNodeSelector = useCallback(() => {
     if (!dialogOpen || formData.selectionMode === 'groups') return;
     void fetchNodeSelector();
   }, [dialogOpen, fetchNodeSelector, formData.selectionMode]);
+
+  const trimmedSubscriptionSearch = subscriptionSearch.trim();
+
+  const nameFilteredSubscriptions = useMemo(() => {
+    if (!trimmedSubscriptionSearch) return subscriptions;
+    const keyword = trimmedSubscriptionSearch.toLowerCase();
+    return subscriptions.filter((sub) => (sub.Name || '').toLowerCase().includes(keyword));
+  }, [subscriptions, trimmedSubscriptionSearch]);
+
+  const displayedSubscriptions = trimmedSubscriptionSearch && shareSearchActive ? shareSearchResults : nameFilteredSubscriptions;
 
   const fetchSelectedNodeDetails = useCallback(
     async (ids) => {
@@ -320,22 +383,34 @@ export default function SubscriptionList() {
   // 获取其他数据（分层加载）
   const fetchOtherData = useCallback(async () => {
     try {
-      const [templatesRes, scriptsRes, countriesRes, groupsRes, sourcesRes, tagsRes, protocolMetaRes, nodeCheckMetaRes, groupStatsRes] =
-        await Promise.all([
-          getTemplates(),
-          getScripts(),
-          getNodeCountries(),
-          getNodeGroups(),
-          getNodeSources(),
-          getTags(),
-          getProtocolUIMeta(),
-          getNodeCheckMeta(),
-          getNodeGroupStats()
-        ]);
+      const [
+        templatesRes,
+        scriptsRes,
+        countriesRes,
+        groupsRes,
+        airportsRes,
+        sourcesRes,
+        tagsRes,
+        protocolMetaRes,
+        nodeCheckMetaRes,
+        groupStatsRes
+      ] = await Promise.all([
+        getTemplates(),
+        getScripts(),
+        getNodeCountries(),
+        getNodeGroups(),
+        getAirports(),
+        getNodeSources(),
+        getTags(),
+        getProtocolUIMeta(),
+        getNodeCheckMeta(),
+        getNodeGroupStats()
+      ]);
       setTemplates(templatesRes.data || []);
       setScripts(scriptsRes.data || []);
       setCountryOptions(countriesRes.data || []);
       setGroupOptions((groupsRes.data || []).sort());
+      setAirportOptions(normalizeAirportList(airportsRes.data));
       setSourceOptions((sourcesRes.data || []).sort());
       setTagOptions(tagsRes.data || []);
       setProtocolOptions(getRegisteredProtocolNames(protocolMetaRes.data || []));
@@ -346,7 +421,7 @@ export default function SubscriptionList() {
     } catch (error) {
       console.error(error);
     }
-  }, []);
+  }, [normalizeAirportList]);
 
   // 初始加载
   useEffect(() => {
@@ -358,9 +433,72 @@ export default function SubscriptionList() {
     refreshNodeSelector();
   }, [refreshNodeSelector, nodeGroupFilter, nodeSourceFilter, nodeSearchQuery, nodeCountryFilter, formData.selectedNodes]);
 
-  const showMessage = (message, severity = 'success') => {
+  const showMessage = useCallback((message, severity = 'success') => {
     setSnackbar({ open: true, message, severity });
-  };
+  }, []);
+
+  useEffect(() => {
+    const query = subscriptionSearch.trim();
+    const requestId = shareSearchRequestRef.current + 1;
+    shareSearchRequestRef.current = requestId;
+
+    if (!query) {
+      setShareSearchActive(false);
+      setShareSearchResults([]);
+      setShareSearching(false);
+      return undefined;
+    }
+
+    const shouldSearchShares = isShareLookupQuery(query) || nameFilteredSubscriptions.length === 0;
+    if (!shouldSearchShares) {
+      setShareSearchActive(false);
+      setShareSearchResults([]);
+      setShareSearching(false);
+      return undefined;
+    }
+
+    setShareSearchActive(true);
+    setShareSearchResults([]);
+    setShareSearching(true);
+
+    const timeoutId = window.setTimeout(async () => {
+      const keyword = extractShareSearchKeyword(query);
+      try {
+        const allSubscriptions = await fetchAllSubscriptionsForSearch();
+        const checks = await Promise.all(
+          allSubscriptions.map(async (sub) => {
+            const response = await getShares(sub.ID, 1, 100, keyword);
+            const shares = response.data?.items || response.data || [];
+            return shares.length > 0 ? sub : null;
+          })
+        );
+
+        if (shareSearchRequestRef.current === requestId) {
+          setShareSearchResults(checks.filter(Boolean));
+        }
+      } catch (error) {
+        console.error(error);
+        if (shareSearchRequestRef.current === requestId) {
+          showMessage(error.message || t('subscriptions.page.messages.shareSearchFailed'), 'error');
+          setShareSearchResults([]);
+        }
+      } finally {
+        if (shareSearchRequestRef.current === requestId) {
+          setShareSearching(false);
+        }
+      }
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    extractShareSearchKeyword,
+    fetchAllSubscriptionsForSearch,
+    isShareLookupQuery,
+    nameFilteredSubscriptions.length,
+    showMessage,
+    subscriptionSearch,
+    t
+  ]);
 
   const copyToClipboard = async (text) => {
     try {
@@ -406,6 +544,7 @@ export default function SubscriptionList() {
       selectionMode: 'nodes',
       selectedNodes: [],
       selectedGroups: [],
+      selectedAirports: [],
       selectedScripts: [],
       IPWhitelist: '',
       IPBlacklist: '',
@@ -463,12 +602,13 @@ export default function SubscriptionList() {
 
     const nodes = sub.Nodes?.map((n) => n.ID) || [];
     const groups = (sub.Groups || []).map((g) => (typeof g === 'string' ? g : g.Name));
+    const airports = (sub.Airports || []).map((airport) => getAirportId(airport)).filter((id) => Number.isInteger(id) && id > 0);
     const scriptIds = (sub.Scripts || []).map((s) => s.id);
 
     let mode = 'nodes';
-    if (nodes.length > 0 && groups.length > 0) {
+    if (nodes.length > 0 && (groups.length > 0 || airports.length > 0)) {
       mode = 'mixed';
-    } else if (groups.length > 0) {
+    } else if (groups.length > 0 || airports.length > 0) {
       mode = 'groups';
     }
 
@@ -482,6 +622,7 @@ export default function SubscriptionList() {
       selectionMode: mode,
       selectedNodes: nodes,
       selectedGroups: groups,
+      selectedAirports: airports,
       selectedScripts: scriptIds,
       IPWhitelist: sub.IPWhitelist || '',
       IPBlacklist: sub.IPBlacklist || '',
@@ -606,12 +747,15 @@ export default function SubscriptionList() {
       if (formData.selectionMode === 'nodes') {
         requestData.nodeIds = formData.selectedNodes.join(',');
         requestData.groups = '';
+        requestData.airports = '';
       } else if (formData.selectionMode === 'groups') {
         requestData.nodeIds = '';
         requestData.groups = formData.selectedGroups.join(',');
+        requestData.airports = formData.selectedAirports.join(',');
       } else {
         requestData.nodeIds = formData.selectedNodes.join(',');
         requestData.groups = formData.selectedGroups.join(',');
+        requestData.airports = formData.selectedAirports.join(',');
       }
 
       if (isEdit) {
@@ -730,8 +874,9 @@ export default function SubscriptionList() {
     try {
       // 构建预览请求数据
       const previewRequest = {
-        Nodes: formData.selectionMode !== 'groups' ? formData.selectedNodes : [],
+        NodeIDs: formData.selectionMode !== 'groups' ? formData.selectedNodes : [],
         Groups: formData.selectionMode !== 'nodes' ? formData.selectedGroups : [],
+        AirportIDs: formData.selectionMode !== 'nodes' ? formData.selectedAirports : [],
         Scripts: formData.selectedScripts || [],
         DelayTime: formData.DelayTime || 0,
         MinSpeed: formData.MinSpeed || 0,
@@ -834,8 +979,10 @@ export default function SubscriptionList() {
       sortData.push({
         ID: node.ID,
         Name: getNodeDisplayName(node),
+        SortKey: `node:${node.ID}`,
         Sort: node.Sort !== undefined ? node.Sort : idx,
-        IsGroup: false
+        IsGroup: false,
+        IsAirport: false
       });
     });
     (sub.Groups || []).forEach((group, idx) => {
@@ -843,8 +990,22 @@ export default function SubscriptionList() {
       sortData.push({
         ID: 0,
         Name: g.Name,
+        SortKey: `group:${g.Name}`,
         Sort: g.Sort !== undefined ? g.Sort : sub.Nodes?.length + idx,
-        IsGroup: true
+        IsGroup: true,
+        IsAirport: false
+      });
+    });
+    (sub.Airports || []).forEach((airport, idx) => {
+      const airportId = getAirportId(airport);
+      const fallbackSort = (sub.Nodes?.length || 0) + (sub.Groups?.length || 0) + idx;
+      sortData.push({
+        ID: airportId,
+        Name: getAirportName(airport),
+        SortKey: `airport:${airportId}`,
+        Sort: airport.Sort !== undefined ? airport.Sort : fallbackSort,
+        IsGroup: false,
+        IsAirport: true
       });
     });
     sortData.sort((a, b) => a.Sort - b.Sort);
@@ -890,7 +1051,7 @@ export default function SubscriptionList() {
   };
 
   const handleSelectAllSort = () => {
-    setSelectedSortItems(tempSortData.map((item) => item.Name));
+    setSelectedSortItems(tempSortData.map((item) => item.SortKey || item.Name));
   };
 
   const handleClearSortSelection = () => {
@@ -926,8 +1087,8 @@ export default function SubscriptionList() {
   const handleBatchMove = (targetIndex) => {
     if (selectedSortItems.length === 0) return;
 
-    const selected = tempSortData.filter((item) => selectedSortItems.includes(item.Name));
-    const remaining = tempSortData.filter((item) => !selectedSortItems.includes(item.Name));
+    const selected = tempSortData.filter((item) => selectedSortItems.includes(item.SortKey || item.Name));
+    const remaining = tempSortData.filter((item) => !selectedSortItems.includes(item.SortKey || item.Name));
 
     // 插入到目标位置
     const newData = [...remaining];
@@ -959,6 +1120,16 @@ export default function SubscriptionList() {
         ...g,
         _type: 'group',
         _sort: g.Sort !== undefined ? g.Sort : (sub.Nodes?.length || 0) + idx
+      });
+    });
+    (sub.Airports || []).forEach((airport, idx) => {
+      const fallbackSort = (sub.Nodes?.length || 0) + (sub.Groups?.length || 0) + idx;
+      items.push({
+        ...airport,
+        ID: getAirportId(airport),
+        Name: getAirportName(airport),
+        _type: 'airport',
+        _sort: airport.Sort !== undefined ? airport.Sort : fallbackSort
       });
     });
     return items.sort((a, b) => a._sort - b._sort);
@@ -1020,9 +1191,39 @@ export default function SubscriptionList() {
         </Stack>
       )}
 
+      <Stack spacing={1} sx={{ mb: 2 }}>
+        <TextField
+          size="small"
+          fullWidth={matchDownMd}
+          label={t('subscriptions.page.search.label')}
+          placeholder={t('subscriptions.page.search.placeholder')}
+          value={subscriptionSearch}
+          onChange={(event) => setSubscriptionSearch(event.target.value)}
+          sx={{ width: { xs: '100%', md: 460 } }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: trimmedSubscriptionSearch && (
+              <InputAdornment position="end">
+                {shareSearching ? (
+                  <CircularProgress size={18} />
+                ) : (
+                  <IconButton size="small" onClick={() => setSubscriptionSearch('')} edge="end" aria-label={t('common.clear')}>
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </InputAdornment>
+            )
+          }}
+        />
+      </Stack>
+
       {matchDownMd ? (
         <SubscriptionMobileCard
-          subscriptions={subscriptions}
+          subscriptions={displayedSubscriptions}
           page={page}
           rowsPerPage={rowsPerPage}
           expandedRows={expandedRows}
@@ -1052,7 +1253,7 @@ export default function SubscriptionList() {
         />
       ) : (
         <SubscriptionTable
-          subscriptions={subscriptions}
+          subscriptions={displayedSubscriptions}
           page={page}
           rowsPerPage={rowsPerPage}
           expandedRows={expandedRows}
@@ -1081,23 +1282,25 @@ export default function SubscriptionList() {
         />
       )}
 
-      <Pagination
-        page={page}
-        pageSize={rowsPerPage}
-        totalItems={totalItems}
-        onPageChange={(e, newPage) => {
-          setPage(newPage);
-          fetchSubscriptions(newPage, rowsPerPage);
-        }}
-        onPageSizeChange={(e) => {
-          const newValue = parseInt(e.target.value, 10);
-          setRowsPerPage(newValue);
-          localStorage.setItem('subscriptions_rowsPerPage', newValue);
-          setPage(0);
-          fetchSubscriptions(0, newValue);
-        }}
-        pageSizeOptions={[10, 20, 50, 100]}
-      />
+      {!trimmedSubscriptionSearch && (
+        <Pagination
+          page={page}
+          pageSize={rowsPerPage}
+          totalItems={totalItems}
+          onPageChange={(e, newPage) => {
+            setPage(newPage);
+            fetchSubscriptions(newPage, rowsPerPage);
+          }}
+          onPageSizeChange={(e) => {
+            const newValue = parseInt(e.target.value, 10);
+            setRowsPerPage(newValue);
+            localStorage.setItem('subscriptions_rowsPerPage', newValue);
+            setPage(0);
+            fetchSubscriptions(0, newValue);
+          }}
+          pageSizeOptions={[10, 20, 50, 100]}
+        />
+      )}
 
       {/* 添加/编辑对话框 */}
       <SubscriptionFormDialog
@@ -1116,6 +1319,7 @@ export default function SubscriptionList() {
         groupNodeCounts={groupNodeCounts}
         allNodeTotal={allNodeTotal}
         groupOptions={groupOptions}
+        airportOptions={airportOptions}
         sourceOptions={sourceOptions}
         countryOptions={countryOptions}
         tagOptions={tagOptions}

@@ -1251,7 +1251,11 @@
         "speedTaskFailed": "Failed to start speed test task",
         "selectCheckRequired": "Select nodes to check",
         "selectedAll": "Selected all {{count}} matching nodes",
-        "columnWidthsReset": "Column widths reset"
+        "columnWidthsReset": "Column widths reset",
+        "selectExportRequired": "Select nodes to export",
+        "exportLinksSuccess": "Exported {{count}} node links",
+        "exportLinksEmpty": "No exportable node links in the current selection",
+        "exportLinksFailed": "Failed to export node links"
       }
     },
     "dialog": {
@@ -1698,6 +1702,7 @@
       "changeSource": "Change source",
       "changeCountry": "Change country",
       "changeDialerProxy": "Change dialer proxy",
+      "exportLinks": "Export links",
       "setTags": "Set tags",
       "removeTags": "Remove tags",
       "groupDialog": {
@@ -1851,6 +1856,7 @@
       "totalHint": "{{count}} items total. Select multiple items to batch sort or move.",
       "deselectAll": "Deselect all",
       "groupLabel": "📁 {{name}} (group)",
+      "airportLabel": "Airport: {{name}}",
       "moveTop": "Move to top",
       "moveBottom": "Move to bottom",
       "top": "Top",
@@ -1947,6 +1953,7 @@
       "sorting": "Sorting",
       "nodeCount": "{{count}} nodes",
       "groupCount": "{{count}} groups",
+      "airportCount": "{{count}} airports",
       "expandHint": "Tap the header to expand details",
       "confirmSort": "Confirm sort",
       "sortNodes": "Sort nodes"
@@ -1976,7 +1983,16 @@
         "delayPassed": "Delay passed",
         "speedPassed": "Speed passed",
         "lowestDelay": "Lowest delay",
-        "highestSpeed": "Highest speed"
+        "highestSpeed": "Highest speed",
+        "distributionTitle": "Node distribution",
+        "distributionSummary": "{{countries}} countries/regions · {{ips}} IPs",
+        "countryDistribution": "Landing country distribution",
+        "countryCount": "{{count}} countries/regions",
+        "sortByNodes": "By nodes",
+        "sortByIps": "By IPs",
+        "countryDistributionMetaByNodes": "{{nodes}} nodes · {{ips}} IPs · {{percent}}%",
+        "countryDistributionMetaByIps": "{{ips}} IPs · {{nodes}} nodes · {{percent}}%",
+        "noCountryData": "No country/region data"
       }
     },
     "nodeTagFilter": {
@@ -1996,6 +2012,10 @@
       "actions": {
         "groupSort": "Group sort",
         "addSubscription": "Add subscription"
+      },
+      "search": {
+        "label": "Search subscriptions",
+        "placeholder": "Search name, share link, or token"
       },
       "confirm": {
         "deleteTitle": "Delete Subscription",
@@ -2020,16 +2040,18 @@
         "sortCancelled": "Sort cancelled",
         "batchSortSuccess": "Batch sort succeeded",
         "batchSortFailed": "Batch sort failed",
-        "movedItems": "Moved {{count}} items to position {{position}}"
+        "movedItems": "Moved {{count}} items to position {{position}}",
+        "shareSearchFailed": "Failed to search share links"
       }
     },
     "table": {
       "name": "Subscription Name",
-      "nodesAndGroups": "Nodes / Groups",
+      "nodesAndGroups": "Nodes / Groups / Airports",
       "createdAt": "Created At",
       "actions": "Actions",
       "sorting": "Sorting",
       "nodeGroupCount": "{{nodes}} nodes, {{groups}} groups",
+      "nodeGroupAirportCount": "{{nodes}} nodes, {{groups}} groups, {{airports}} airports",
       "tooltips": {
         "preview": "Preview nodes",
         "copy": "Copy this configuration as a new copy",
@@ -2047,7 +2069,28 @@
       "lastVisit": "Last Visit",
       "count": "{{count}} times",
       "total": "{{count}} records",
+      "filteredTotal": "{{filtered}} / {{total}} records",
       "unknownSource": "Unknown source",
+      "search": {
+        "label": "Search access logs",
+        "placeholder": "Search IP or source region",
+        "clear": "Clear search",
+        "empty": "No matching access logs"
+      },
+      "sort": {
+        "field": "Sort by",
+        "direction": "Sort direction",
+        "ascending": "Ascending",
+        "descending": "Descending",
+        "ascShort": "Asc",
+        "descShort": "Desc",
+        "fields": {
+          "ip": "IP address",
+          "region": "Source region",
+          "count": "Visits",
+          "date": "Last visit"
+        }
+      },
       "empty": "No access logs yet"
     },
     "conditions": {
@@ -2385,7 +2428,19 @@
       "loadMore": "Load more",
       "noMore": "No more shares",
       "noResults": "No results found for your search",
-      "searchPlaceholder": "Search by name, token, or share link..."
+      "searchPlaceholder": "Search by name, token, IP address, or share link...",
+      "sortLabel": "Sort",
+      "sortNone": "Access count",
+      "sortDesc": "Access count ↓",
+      "sortAsc": "Access count ↑",
+      "sort": {
+        "accessCount": "Access count",
+        "accessCountDesc": "Access count ↓",
+        "accessCountAsc": "Access count ↑",
+        "name": "Name",
+        "nameAsc": "Name ↑",
+        "nameDesc": "Name ↓"
+      }
     },
     "form": {
       "title": {
@@ -2418,16 +2473,20 @@
         "realtimeUsageTooltip": "When enabled, it will fetch the latest usage info (traffic, expiration time, etc.) in real time upon every subscription link access, which increases response time; when disabled, it uses cached data for faster response."
       },
       "nodeSelection": {
-        "summary": "{{nodeCount}} nodes / {{groupCount}} groups",
+        "summary": "{{nodeCount}} nodes / {{groupCount}} groups / {{airportCount}} airports",
         "modeLabel": "Selection Mode",
         "modeManual": "Manual node selection",
-        "modeDynamic": "Dynamic group selection",
+        "modeDynamic": "Dynamic groups or airports",
         "modeMixed": "Mixed mode",
         "modeManualHelper": "Select specific nodes manually. Nodes will not update automatically with group changes.",
-        "modeDynamicHelper": "Select groups to automatically include all their nodes. Nodes will update dynamically with group changes.",
-        "modeMixedHelper": "Supports both manual node selection and dynamic group selection.",
+        "modeDynamicHelper": "Select groups or airports to automatically include their nodes. Nodes update dynamically when groups or airports change.",
+        "modeMixedHelper": "Use manual nodes together with dynamic groups or airports.",
         "groupSelect": "Select Groups (Dynamic)",
+        "groupSelectHelper": "Dynamic groups include all current and future nodes in the selected groups.",
         "groupOption": "{{name}} ({{count}} nodes)",
+        "airportSelect": "Select Airports (Dynamic)",
+        "airportSelectHelper": "Dynamic airports include nodes imported from the selected airports.",
+        "airportOption": "{{name}} ({{count}} nodes)",
         "nodeGroupFilter": "Group Filter",
         "nodeGroupAll": "All Groups ({{count}})",
         "nodeSourceFilter": "Source Filter",
@@ -2585,6 +2644,31 @@
       "expired": "Expired",
       "hours": "Expires in {{count}} hours",
       "days": "Expires in {{count}} days"
+    },
+    "settings": {
+      "title": "Host Module Settings",
+      "persistHost": "Persist Host",
+      "persistHostHint": "Automatically save speed-test DNS results when enabled",
+      "expireHours": "Expiration hours",
+      "hours": "hours",
+      "neverExpire": "(never expires)",
+      "dnsTitle": "DNS Resolution Settings",
+      "dnsServer": "DNS server",
+      "dnsPlaceholder": "Select or enter a DNS server",
+      "dnsHelper": "Used to resolve domains in Host records",
+      "dnsUseProxy": "Query DNS through proxy",
+      "proxyStrategy": "Proxy strategy",
+      "strategy": {
+        "auto": "Auto",
+        "manual": "Manual",
+        "autoHint": "Automatically select an available node for DNS queries.",
+        "manualHint": "Use the selected node for DNS queries."
+      },
+      "proxyNode": "Proxy node",
+      "messages": {
+        "loadFailed": "Failed to load Host settings",
+        "saveFailed": "Failed to save Host settings"
+      }
     },
     "messages": {
       "loadFailed": "Failed to load Host list",
