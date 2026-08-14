@@ -71,7 +71,6 @@ func normalizeHostnamesAndDeduplicate(db *gorm.DB) error {
 	})
 }
 
-
 func repairHTTPHTTPSNodeProtocolFromLink(db *gorm.DB) error {
 	type nodeProtocolRow struct {
 		ID       int
