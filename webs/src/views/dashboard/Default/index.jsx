@@ -328,6 +328,56 @@ const getProgressBarSx = (color, isDark, muted = false) => ({
   }
 });
 
+const getGreeting = (t) => {
+  const hour = new Date().getHours();
+
+  if (hour >= 5 && hour < 9) {
+    return {
+      text: t('dashboard.default.greeting.morning'),
+      emoji: '🌅',
+      subText: t('dashboard.default.greeting.morningSub')
+    };
+  }
+
+  if (hour >= 9 && hour < 12) {
+    return {
+      text: t('dashboard.default.greeting.lateMorning'),
+      emoji: '☀️',
+      subText: t('dashboard.default.greeting.lateMorningSub')
+    };
+  }
+
+  if (hour >= 12 && hour < 14) {
+    return {
+      text: t('dashboard.default.greeting.noon'),
+      emoji: '🌤️',
+      subText: t('dashboard.default.greeting.noonSub')
+    };
+  }
+
+  if (hour >= 14 && hour < 18) {
+    return {
+      text: t('dashboard.default.greeting.afternoon'),
+      emoji: '🌇',
+      subText: t('dashboard.default.greeting.afternoonSub')
+    };
+  }
+
+  if (hour >= 18 && hour < 23) {
+    return {
+      text: t('dashboard.default.greeting.evening'),
+      emoji: '🌙',
+      subText: t('dashboard.default.greeting.eveningSub')
+    };
+  }
+
+  return {
+    text: t('dashboard.default.greeting.night'),
+    emoji: '✨',
+    subText: t('dashboard.default.greeting.nightSub')
+  };
+};
+
 const StatRowsSkeleton = ({ rows = 5 }) => (
   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
     {Array.from({ length: rows }).map((_, index) => (
@@ -1436,6 +1486,7 @@ export default function DashboardDefault() {
   const { t, i18n } = useTranslation();
   const { isDark } = useResolvedColorScheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const greeting = useMemo(() => getGreeting(t), [t]);
   const [nodeTotal, setNodeTotal] = useState(0);
   const [nodeDelayPassCount, setNodeDelayPassCount] = useState(0);
   const [nodeSpeedPassCount, setNodeSpeedPassCount] = useState(0);
