@@ -4,8 +4,11 @@ on:
   push:
     tags:
       - 'v*'
+    # Fork 仓库没有足够的 Actions 存储配额支撑每次 push 的全量构建，
+    # 完整构建链（artifact 上传/下载）只在打 tag 时触发。
     branches:
-      - '**'
+      - 'v*'
+      - 'release/**'
     paths-ignore:
       # 文档文件（不包括 skill-sublinkpro，它会被嵌入到二进制文件中）
       - '*.md'
