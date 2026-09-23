@@ -129,31 +129,6 @@ jobs:
             goarch: arm64
             output: sublinkPro-linux-arm64
             upx: true
-          - goos: linux
-            goarch: arm
-            goarm: 7
-            output: sublinkPro-linux-armv7
-            upx: true
-          - goos: linux
-            goarch: 386
-            output: sublinkPro-linux-x86
-            upx: true
-          - goos: windows
-            goarch: amd64
-            output: sublinkPro-windows-amd64.exe
-            upx: false
-          - goos: windows
-            goarch: 386
-            output: sublinkPro-windows-x86.exe
-            upx: false
-          - goos: darwin
-            goarch: amd64
-            output: sublinkPro-darwin-amd64
-            upx: false
-          - goos: darwin
-            goarch: arm64
-            output: sublinkPro-darwin-arm64
-            upx: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -237,12 +212,6 @@ jobs:
           REQUIRED_FILES=(
             "sublinkPro-linux-amd64"
             "sublinkPro-linux-arm64"
-            "sublinkPro-linux-armv7"
-            "sublinkPro-linux-x86"
-            "sublinkPro-windows-amd64.exe"
-            "sublinkPro-windows-x86.exe"
-            "sublinkPro-darwin-amd64"
-            "sublinkPro-darwin-arm64"
           )
           
           MISSING=0
@@ -309,12 +278,6 @@ jobs:
           echo "### 📦 发布文件:" >> changelog.md
           echo "- \`sublinkPro-linux-amd64\` - Linux x64" >> changelog.md
           echo "- \`sublinkPro-linux-arm64\` - Linux ARM64" >> changelog.md
-          echo "- \`sublinkPro-linux-armv7\` - Linux ARMv7 (32-bit)" >> changelog.md
-          echo "- \`sublinkPro-linux-x86\` - Linux x86 (32-bit)" >> changelog.md
-          echo "- \`sublinkPro-windows-amd64.exe\` - Windows x64" >> changelog.md
-          echo "- \`sublinkPro-windows-x86.exe\` - Windows x86 (32-bit)" >> changelog.md
-          echo "- \`sublinkPro-darwin-amd64\` - macOS x64" >> changelog.md
-          echo "- \`sublinkPro-darwin-arm64\` - macOS ARM64 (Apple Silicon)" >> changelog.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -325,12 +288,6 @@ jobs:
           files: |
             build/sublinkPro-linux-amd64
             build/sublinkPro-linux-arm64
-            build/sublinkPro-linux-armv7
-            build/sublinkPro-linux-x86
-            build/sublinkPro-windows-amd64.exe
-            build/sublinkPro-windows-x86.exe
-            build/sublinkPro-darwin-amd64
-            build/sublinkPro-darwin-arm64
           draft: false
           prerelease: false
         env:
@@ -374,7 +331,7 @@ jobs:
             # 带 tag 的推送：使用 tag 版本号 + latest
             TAG=${GITHUB_REF#refs/tags/}
             IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
-            docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64,linux/arm/v7 \
+            docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64 \
               -f Dockerfile.ci \
               -t "${IMAGE}:${TAG}" \
               -t "${IMAGE}:latest" \
@@ -389,7 +346,7 @@ jobs:
               DOCKER_TAG=${BRANCH//\//-}
             fi
             IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
-            docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64,linux/arm/v7 \
+            docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64 \
               -f Dockerfile.ci \
               -t "${IMAGE}:${DOCKER_TAG}" \
               --push .
