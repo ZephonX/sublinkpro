@@ -16,6 +16,10 @@ sublinkPro.exe
 .claude/sessions/
 .claude/plans/
 .claude/transcripts/
+.claude/handoffs/
+# Node/npm debris accidentally generated at repo root
+/package.json
+/package-lock.json
 
 /.sisyphus/
 /.playwright-mcp/
